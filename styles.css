@@ -99,7 +99,7 @@ body, html {
 
 .title-container {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 .title-container h1 {
   font-family: 'Cinzel', serif;
@@ -124,11 +124,11 @@ body, html {
   background: rgba(20, 32, 25, 0.8);
   border: 1px solid rgba(46, 204, 113, 0.3);
   border-radius: 16px;
-  padding: 1rem 1.8rem;
-  margin-bottom: 1.5rem;
+  padding: 0.8rem 1.6rem;
+  margin-bottom: 1.2rem;
   display: flex;
   align-items: center;
-  gap: 1.2rem;
+  gap: 1rem;
   box-shadow: 0 8px 25px rgba(0,0,0,0.4);
 }
 .mp-btn {
@@ -161,10 +161,67 @@ body, html {
   font-size: 1.1rem;
 }
 
+/* DIFFICULTY SELECTION PANEL */
+.difficulty-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+  background: rgba(15, 23, 20, 0.7);
+  padding: 0.6rem 1.2rem;
+  border-radius: 30px;
+  border: 1px solid var(--panel-border);
+}
+.diff-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.diff-btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.4);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.diff-btn:hover {
+  transform: translateY(-2px);
+}
+.diff-btn.selected[data-diff="easy"] {
+  background: rgba(46, 204, 113, 0.25);
+  border-color: #2ecc71;
+  color: #2ecc71;
+  box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+}
+.diff-btn.selected[data-diff="normal"] {
+  background: rgba(241, 196, 15, 0.25);
+  border-color: #f1c40f;
+  color: #f1c40f;
+  box-shadow: 0 0 15px rgba(241, 196, 15, 0.4);
+}
+.diff-btn.selected[data-diff="hard"] {
+  background: rgba(230, 126, 34, 0.25);
+  border-color: #e67e22;
+  color: #e67e22;
+  box-shadow: 0 0 15px rgba(230, 126, 34, 0.4);
+}
+.diff-btn.selected[data-diff="nightmare"] {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: #e74c3c;
+  color: #ff6b6b;
+  box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+}
+
 .dino-select-cards {
   display: flex;
   gap: 1.2rem;
-  margin-bottom: 1.8rem;
+  margin-bottom: 1.5rem;
   max-width: 1050px;
   width: 95%;
 }

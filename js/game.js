@@ -1,9 +1,10 @@
-/* js/game.js - Engine Supporting Online PeerJS Multiplayer & PvP */
+/* js/game.js - Engine Supporting Difficulty Selection (Easy, Normal, Hard, Apex Nightmare) */
 
 class GameEngine {
   constructor() {
     this.container = document.getElementById('canvas-container');
     this.selectedDinoType = 'raptor';
+    this.difficulty = 'normal';
 
     this.stats = {
       hp: 100,
@@ -17,6 +18,9 @@ class GameEngine {
       growth: 10,
       growthStage: 'Hatchling'
     };
+
+    // Difficulty Rate Multipliers
+    this.depletionRate = { hunger: 0.6, thirst: 0.8 };
 
     this.skillCooldown = 0;
     this.attackAnimTime = 0;
@@ -127,6 +131,11 @@ class GameEngine {
     this.scene.add(lake2);
     this.waterSources.push(lake2);
 
+    const lake3 = new THREE.Mesh(lakeGeo, waterMat);
+    lake3.position.set(60, 0.1, -80);
+    this.scene.add(lake3);
+    this.waterSources.push(lake3);
+
     for (let i = 0; i < 90; i++) {
       const tree = ModelBuilder.createTree();
       const x = (Math.random() - 0.5) * 300;
@@ -140,7 +149,7 @@ class GameEngine {
       }
     }
 
-    for (let i = 0; i < 35; i++) {
+    for (let i = 0; i < 40; i++) {
       const bush = ModelBuilder.createFoodBush();
       const x = (Math.random() - 0.5) * 260;
       const z = (Math.random() - 0.5) * 260;
@@ -156,8 +165,25 @@ class GameEngine {
     this.aiManager = new AIManager(this.scene);
   }
 
-  startGame(dinoType) {
+  startGame(dinoType, difficultyLevel = 'normal') {
     this.selectedDinoType = dinoType;
+    this.difficulty = difficultyLevel;
+
+    // Apply difficulty settings
+    let aiSpawnCount = 18;
+    if (this.difficulty === 'easy') {
+      aiSpawnCount = 10;
+      this.depletionRate = { hunger: 0.35, thirst: 0.45 };
+    } else if (this.difficulty === 'normal') {
+      aiSpawnCount = 16;
+      this.depletionRate = { hunger: 0.6, thirst: 0.8 };
+    } else if (this.difficulty === 'hard') {
+      aiSpawnCount = 24;
+      this.depletionRate = { hunger: 1.1, thirst: 1.4 };
+    } else if (this.difficulty === 'nightmare') {
+      aiSpawnCount = 32;
+      this.depletionRate = { hunger: 1.6, thirst: 1.9 };
+    }
 
     if (this.playerMesh) this.scene.remove(this.playerMesh);
     this.playerMesh = ModelBuilder.createDinosaur(dinoType, false);
@@ -179,13 +205,14 @@ class GameEngine {
     document.getElementById('hud-screen').style.display = 'flex';
     document.getElementById('game-over-screen').classList.remove('active');
 
-    this.aiManager.spawnInitialDinos(20);
+    this.aiManager.spawnInitialDinos(aiSpawnCount, this.difficulty);
 
     this.clock = new THREE.Clock();
     this.isGaming = true;
 
     document.body.requestPointerLock();
-    this.logNotification(`🎮 Đã vào game dưới dạng ${dinoType.toUpperCase()}!`);
+    const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
+    this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
     this.animate();
   }
 
@@ -262,7 +289,6 @@ class GameEngine {
     let hitCount = 0;
     const baseDamage = this.selectedDinoType === 'trex' ? 50 : (this.selectedDinoType === 'stegosaurus' ? 40 : 35);
 
-    // AI Damage
     this.aiManager.dinos.forEach(ai => {
       if (!ai.isDead) {
         const dist = playerPos.distanceTo(ai.mesh.position);
@@ -472,9 +498,9 @@ class GameEngine {
     this.camera.position.z = this.playerMesh.position.z - Math.cos(this.cameraAngleY) * Math.cos(this.cameraAngleX) * camDist;
     this.camera.lookAt(this.playerMesh.position.x, this.playerMesh.position.y + 1.5, this.playerMesh.position.z);
 
-    // 3. SURVIVAL DEPLETION
-    this.stats.hunger = Math.max(0, this.stats.hunger - delta * 1.1);
-    this.stats.thirst = Math.max(0, this.stats.thirst - delta * 1.4);
+    // 3. SURVIVAL DEPLETION BY DIFFICULTY LEVEL
+    this.stats.hunger = Math.max(0, this.stats.hunger - delta * this.depletionRate.hunger);
+    this.stats.thirst = Math.max(0, this.stats.thirst - delta * this.depletionRate.thirst);
 
     if (this.stats.hunger <= 0 || this.stats.thirst <= 0) {
       this.stats.hp = Math.max(0, this.stats.hp - delta * 6);
@@ -489,7 +515,7 @@ class GameEngine {
     // 5. Prompts
     this.checkInteractionPrompts();
 
-    // 6. Update AI, Scent & PeerJS Remote Players
+    // 6. Update AI & PeerJS Remote Players
     this.aiManager.update(delta, this.playerMesh, this.selectedDinoType, this);
     this.scentSystem.update(this.playerMesh.position, this.waterSources, this.foodBushes, this.meatCarcasses, this.aiManager.dinos);
     if (window.multiplayerManager) window.multiplayerManager.update(delta);
@@ -595,7 +621,7 @@ class GameEngine {
       }
     });
 
-    // Remote Players (Blue Cyan dots)
+    // Remote Players
     if (window.multiplayerManager) {
       for (const id in window.multiplayerManager.remotePlayers) {
         const remote = window.multiplayerManager.remotePlayers[id];

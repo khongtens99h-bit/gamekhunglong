@@ -1,9 +1,10 @@
-/* js/ai.js - High Difficulty Aggressive AI Dinosaur System */
+/* js/ai.js - AI Dinosaur Behavior System Supporting Dynamic Difficulty Levels */
 
 class AIDinosaur {
-  constructor(scene, type, spawnPos) {
+  constructor(scene, type, spawnPos, difficulty = 'normal') {
     this.scene = scene;
     this.type = type;
+    this.difficulty = difficulty;
     this.mesh = ModelBuilder.createDinosaur(type, true);
     this.mesh.position.copy(spawnPos);
     
@@ -11,15 +12,28 @@ class AIDinosaur {
     this.mesh.position.y = groundY + 0.1;
     this.scene.add(this.mesh);
 
-    // High Difficulty Species Stats
+    // Difficulty multipliers
+    let diffMult = 1.0;
+    this.detectRadius = 35;
+
+    if (difficulty === 'easy') {
+      diffMult = 0.7; this.detectRadius = 25;
+    } else if (difficulty === 'normal') {
+      diffMult = 1.0; this.detectRadius = 35;
+    } else if (difficulty === 'hard') {
+      diffMult = 1.3; this.detectRadius = 50;
+    } else if (difficulty === 'nightmare') {
+      diffMult = 1.7; this.detectRadius = 70;
+    }
+
     if (type === 'trex') {
-      this.hp = 250; this.speed = 0.095; this.damage = 38;
+      this.hp = 200 * diffMult; this.speed = 0.08 * diffMult; this.damage = 30 * diffMult;
     } else if (type === 'stegosaurus') {
-      this.hp = 180; this.speed = 0.065; this.damage = 28;
+      this.hp = 160 * diffMult; this.speed = 0.055 * diffMult; this.damage = 24 * diffMult;
     } else if (type === 'triceratops') {
-      this.hp = 150; this.speed = 0.075; this.damage = 25;
+      this.hp = 130 * diffMult; this.speed = 0.065 * diffMult; this.damage = 20 * diffMult;
     } else { // raptor
-      this.hp = 95;  this.speed = 0.12;  this.damage = 22;
+      this.hp = 80 * diffMult;  this.speed = 0.10 * diffMult;  this.damage = 18 * diffMult;
     }
 
     this.maxHp = this.hp;
@@ -61,8 +75,7 @@ class AIDinosaur {
 
     const isDifferentSpecies = this.type !== playerDinoType;
 
-    // Aggressive Pack Detection Range: 50 meters!
-    if (isDifferentSpecies && distToPlayer < 50) {
+    if (isDifferentSpecies && distToPlayer < this.detectRadius) {
       this.state = 'attack';
     } else if (!isDifferentSpecies && distToPlayer < 18 && this.state === 'attack_retaliate') {
       this.state = 'attack';
@@ -79,8 +92,8 @@ class AIDinosaur {
       this.moveTowards(moveVector, this.speed * 1.35, delta);
 
       if (distToPlayer < 4.8 && this.attackCooldown <= 0) {
-        this.attackCooldown = 1.1; // Faster attacks
-        gameEngine.takePlayerDamage(this.damage, this.type);
+        this.attackCooldown = 1.2;
+        gameEngine.takePlayerDamage(Math.round(this.damage), this.type);
         if (window.soundEngine) window.soundEngine.playAttack();
       }
     } else if (this.state === 'flee') {
@@ -145,7 +158,7 @@ class AIManager {
     this.dinos = [];
   }
 
-  spawnInitialDinos(count = 25) {
+  spawnInitialDinos(count = 18, difficulty = 'normal') {
     const species = ['raptor', 'triceratops', 'trex', 'stegosaurus'];
     for (let i = 0; i < count; i++) {
       const type = species[Math.floor(Math.random() * species.length)];
@@ -156,7 +169,7 @@ class AIManager {
         0,
         Math.cos(angle) * radius
       );
-      const ai = new AIDinosaur(this.scene, type, pos);
+      const ai = new AIDinosaur(this.scene, type, pos, difficulty);
       this.dinos.push(ai);
     }
   }

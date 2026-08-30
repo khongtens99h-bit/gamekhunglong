@@ -36,6 +36,15 @@
       <button class="mp-btn" style="background: linear-gradient(90deg, #3498db, #2980b9);" onclick="joinOnlineRoom()"><i class="fa-solid fa-right-to-bracket"></i> Tham Gia</button>
     </div>
 
+    <!-- Difficulty Selection Bar -->
+    <div class="difficulty-panel">
+      <span class="diff-title"><i class="fa-solid fa-skull"></i> Độ Khó:</span>
+      <button class="diff-btn" data-diff="easy" onclick="selectDifficulty(this, 'easy')">🟢 Dễ (Easy)</button>
+      <button class="diff-btn selected" data-diff="normal" onclick="selectDifficulty(this, 'normal')">🟡 Vừa (Normal)</button>
+      <button class="diff-btn" data-diff="hard" onclick="selectDifficulty(this, 'hard')">🔴 Khó (Hard)</button>
+      <button class="diff-btn" data-diff="nightmare" onclick="selectDifficulty(this, 'nightmare')">☠️ Bá Chủ (Apex)</button>
+    </div>
+
     <div class="dino-select-cards">
       <!-- Raptor Card -->
       <div class="dino-card selected" onclick="selectDinoCard(this, 'raptor')">
@@ -197,11 +206,18 @@
 
   <script>
     let chosenDinoType = 'raptor';
+    let chosenDifficulty = 'normal';
 
     function selectDinoCard(element, dinoType) {
       document.querySelectorAll('.dino-card').forEach(card => card.classList.remove('selected'));
       element.classList.add('selected');
       chosenDinoType = dinoType;
+    }
+
+    function selectDifficulty(btn, diff) {
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      chosenDifficulty = diff;
     }
 
     function hostOnlineRoom() {
@@ -233,7 +249,7 @@
       if (!window.gameEngine) {
         window.gameEngine = new GameEngine();
       }
-      window.gameEngine.startGame(chosenDinoType);
+      window.gameEngine.startGame(chosenDinoType, chosenDifficulty);
     }
   </script>
 </body>
