@@ -1,4 +1,4 @@
-/* js/game.js - Engine Supporting Playable Dog-Rex (Chó-Rex Meme King) Character */
+/* js/game.js - Engine Supporting Exact Ultra-Limited Solo Ammo (AK: 3, Shotgun: 1, Plasma: 2) & Cursed Traps */
 
 class GameEngine {
   constructor() {
@@ -12,6 +12,13 @@ class GameEngine {
     this.p2Score = 0;
 
     this.isResettingRound = false;
+
+    this.currentGun = null;
+    this.equippedGunMesh = null;
+
+    // Debuff timers (Cursed Airdrops)
+    this.freezeTimer = 0;
+    this.disarmTimer = 0;
 
     this.stats = {
       hp: 100,
@@ -30,11 +37,15 @@ class GameEngine {
 
     this.skillCooldown = 0;
     this.normalAttackCooldown = 0;
+    this.gunFireCooldown = 0;
     this.attackAnimTime = 0;
+    this.airdropTimer = 10;
 
     this.waterSources = [];
     this.foodBushes = [];
     this.meatCarcasses = [];
+    this.activeBullets = [];
+    this.airdrops = [];
 
     this.keys = {};
     this.scentActive = false;
@@ -172,6 +183,38 @@ class GameEngine {
     this.aiManager = new AIManager(this.scene);
   }
 
+  spawnAirdrop() {
+    const isTrap = Math.random() < 0.3;
+    let lootType = 'ak47';
+
+    if (isTrap) {
+      const traps = ['freeze', 'disarm', 'mine'];
+      lootType = traps[Math.floor(Math.random() * traps.length)];
+    } else {
+      const weapons = ['ak47', 'shotgun', 'plasma'];
+      lootType = weapons[Math.floor(Math.random() * weapons.length)];
+    }
+
+    const drop = ModelBuilder.createAirdropCrate(lootType);
+
+    const playerPos = this.playerMesh ? this.playerMesh.position : new THREE.Vector3(0, 0, 0);
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 15 + Math.random() * 50;
+    const x = playerPos.x + Math.sin(angle) * dist;
+    const z = playerPos.z + Math.cos(angle) * dist;
+    const targetY = this.getTerrainHeight(x, z);
+
+    drop.position.set(x, 85, z);
+    drop.targetY = targetY;
+    drop.isLanded = false;
+    drop.lootType = lootType;
+
+    this.scene.add(drop);
+    this.airdrops.push(drop);
+
+    this.logNotification(`🪂 CHÚ Ý: HÒM AIRDROP MỚI ĐÃ THẢ TỪ TRÊN TRỜI! (Coi chừng Hòm Bẫy!)`);
+  }
+
   startGame(dinoType, difficultyLevel = 'normal', mode = 'survival', matchFmt = 'bo3') {
     this.selectedDinoType = dinoType;
     this.difficulty = difficultyLevel;
@@ -179,6 +222,15 @@ class GameEngine {
     this.matchFormat = matchFmt;
     this.p1Score = 0;
     this.p2Score = 0;
+    this.airdropTimer = 10;
+    this.freezeTimer = 0;
+    this.disarmTimer = 0;
+
+    this.currentGun = null;
+    if (this.equippedGunMesh) {
+      this.playerMesh.remove(this.equippedGunMesh);
+      this.equippedGunMesh = null;
+    }
 
     let aiSpawnCount = 18;
     if (this.gameMode === 'pvp1v1') {
@@ -251,7 +303,7 @@ class GameEngine {
       window.soundEngine.playDogBark();
     }
     if (this.gameMode === 'pvp1v1') {
-      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 (${matchFmt.toUpperCase()}): Tăng 3x Máu (${maxHp} HP)!`);
+      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 (${matchFmt.toUpperCase()}): Tăng 3x Máu (${maxHp} HP)! AK: 3 viên, Shotgun: 1 viên, Plasma: 2 viên!`);
     } else {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
       this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType === 'dogerex' ? 'CHÓ-REX MEME 🐶' : dinoType.toUpperCase()}`);
@@ -268,6 +320,8 @@ class GameEngine {
     this.stats.stamina = 100;
     this.stats.hunger = 100;
     this.stats.thirst = 100;
+    this.freezeTimer = 0;
+    this.disarmTimer = 0;
 
     const isHost = window.multiplayerManager && window.multiplayerManager.isHost;
     const spawnZ = isHost ? -8 : 8;
@@ -311,6 +365,10 @@ class GameEngine {
         this.scentActive = !this.scentActive;
         this.scentSystem.toggle(this.scentActive);
         this.logNotification(this.scentActive ? 'Đã bật Đánh hơi (Scent Mode)' : 'Tắt Đánh hơi');
+      }
+
+      if (e.code === 'KeyF' && this.isGaming) {
+        this.fireGunWeapon();
       }
 
       if (this.isGaming) {
@@ -377,14 +435,88 @@ class GameEngine {
       if (!this.isGaming) return;
 
       if (e.button === 0) {
-        this.performLeftClickAttack();
+        if (this.currentGun && this.currentGun.ammo > 0) {
+          this.fireGunWeapon();
+        } else {
+          this.performLeftClickAttack();
+        }
       } else if (e.button === 2) {
         this.performRightClickSkill();
       }
     });
   }
 
+  fireGunWeapon() {
+    if (this.disarmTimer > 0) {
+      this.logNotification(`🚫 BẠN ĐANG BỊ BẮY TỀ LIỆT! Không thể bắn súng! (${this.disarmTimer.toFixed(1)}s)`);
+      return;
+    }
+
+    if (!this.currentGun || this.currentGun.ammo <= 0) {
+      this.logNotification('⚠️ Bạn chưa nhặt súng hoặc súng đã hết đạn! Tìm Hòm Airdrop thả từ trên trời.');
+      return;
+    }
+
+    if (this.gunFireCooldown > 0) return;
+
+    this.gunFireCooldown = this.currentGun.type === 'ak47' ? 0.12 : (this.currentGun.type === 'shotgun' ? 0.6 : 0.25);
+    this.currentGun.ammo -= 1;
+    this.updateGunHUD();
+
+    if (window.soundEngine) window.soundEngine.playGunshot(this.currentGun.type);
+
+    const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
+    const spawnPos = this.playerMesh.position.clone().add(forwardDir.clone().multiplyScalar(1.8));
+    spawnPos.y += 1.8;
+
+    const bulletColor = this.currentGun.type === 'plasma' ? 0x00ffff : 0xffe100;
+    const bulletMesh = ModelBuilder.createBulletProjectile(bulletColor);
+    bulletMesh.position.copy(spawnPos);
+    bulletMesh.rotation.y = this.dinoAngleY;
+
+    this.scene.add(bulletMesh);
+    this.activeBullets.push({
+      mesh: bulletMesh,
+      dir: forwardDir,
+      speed: 2.4,
+      life: 1.5,
+      damage: this.currentGun.damage,
+      gunType: this.currentGun.type
+    });
+
+    this.logNotification(`🔫 BẮN! (${this.currentGun.name} - Còn ${this.currentGun.ammo} viên)`);
+
+    if (this.currentGun.ammo <= 0) {
+      this.logNotification(`⚠️ Súng ${this.currentGun.name} đã hết đạn và bị văng ra!`);
+      this.currentGun = null;
+      if (this.equippedGunMesh) {
+        this.playerMesh.remove(this.equippedGunMesh);
+        this.equippedGunMesh = null;
+      }
+      this.updateGunHUD();
+    }
+  }
+
+  updateGunHUD() {
+    const card = document.getElementById('weapon-status-card');
+    const nameEl = document.getElementById('weapon-name-text');
+    const ammoEl = document.getElementById('weapon-ammo-text');
+
+    if (this.currentGun && this.currentGun.ammo > 0) {
+      card.style.display = 'block';
+      nameEl.innerText = `🔫 ${this.currentGun.name}`;
+      ammoEl.innerText = `${this.currentGun.ammo} / ${this.currentGun.maxAmmo} ĐẠN`;
+    } else {
+      card.style.display = 'none';
+    }
+  }
+
   performLeftClickAttack() {
+    if (this.disarmTimer > 0) {
+      this.logNotification(`🚫 BẠN ĐANG BỊ BẮY TỀ LIỆT! Không thể tấn công! (${this.disarmTimer.toFixed(1)}s)`);
+      return;
+    }
+
     if (this.normalAttackCooldown > 0) {
       this.logNotification(`Đòn cắn đang hồi chiêu (${this.normalAttackCooldown.toFixed(1)}s)...`);
       return;
@@ -442,6 +574,11 @@ class GameEngine {
   }
 
   performRightClickSkill() {
+    if (this.disarmTimer > 0) {
+      this.logNotification(`🚫 BẠN ĐANG BỊ BẮY TỀ LIỆT! Không thể dùng kỹ năng! (${this.disarmTimer.toFixed(1)}s)`);
+      return;
+    }
+
     if (this.skillCooldown > 0) {
       this.logNotification(`Kỹ năng đang hồi chiêu (${this.skillCooldown.toFixed(1)}s)...`);
       return;
@@ -537,7 +674,59 @@ class GameEngine {
     const playerPos = this.playerMesh.position;
     let actionTaken = false;
 
-    if (this.isNearWater()) {
+    // Check Loot Airdrops (Exact Ultra-Limited Solo Ammo: AK 3, Shotgun 1, Plasma 2!)
+    for (let i = 0; i < this.airdrops.length; i++) {
+      const drop = this.airdrops[i];
+      const dist2D = Math.hypot(playerPos.x - drop.position.x, playerPos.z - drop.position.z);
+
+      if (dist2D < 7.5) {
+        const lType = drop.lootType || drop.gunType;
+
+        if (lType === 'freeze') {
+          this.freezeTimer = 4.5;
+          this.logNotification(`🥶 BẤY ĐÓNG BĂNG AIRDROP! Bạn bị ĐỐNG BĂNG không thể di chuyển trong 4.5s!`);
+        } else if (lType === 'disarm') {
+          this.disarmTimer = 5.0;
+          this.logNotification(`🚫 BẮY TỀ LIỆT AIRDROP! Bạn bị KHÓA TẤN CÔNG trong 5.0s!`);
+        } else if (lType === 'mine') {
+          this.takePlayerDamage(35, 'BẪY MÌN NỔ AIRDROP');
+          this.logNotification(`💥 BẪY MÌN NỔ AIRDROP! Bị nổ (-35 HP)!`);
+        } else { // Guns with EXACT ULTRA-LIMITED SOLO AMMO!
+          let name = 'AK-47';
+          let ammo = this.gameMode === 'pvp1v1' ? 3 : 10;
+          let dmg = 25;
+
+          if (lType === 'shotgun') {
+            name = 'Heavy Shotgun';
+            ammo = this.gameMode === 'pvp1v1' ? 1 : 4;
+            dmg = 60;
+          } else if (lType === 'plasma') {
+            name = 'Plasma Blaster';
+            ammo = this.gameMode === 'pvp1v1' ? 2 : 6;
+            dmg = 45;
+          }
+
+          this.currentGun = { type: lType, name, ammo, maxAmmo: ammo, damage: dmg };
+
+          if (this.equippedGunMesh) this.playerMesh.remove(this.equippedGunMesh);
+          this.equippedGunMesh = ModelBuilder.createGunPickup(lType).gunMesh;
+          this.equippedGunMesh.position.set(0, 1.8, 0.4);
+          this.equippedGunMesh.rotation.y = Math.PI / 2;
+          this.playerMesh.add(this.equippedGunMesh);
+
+          this.updateGunHUD();
+          this.logNotification(`🪂 ĐÃ MỞ AIRDROP! NHẶT SÚNG ${name} (${ammo} VIÊN)! Nhấn [F] hoặc [Chuột Trái] để BẮN!`);
+        }
+
+        this.scene.remove(drop);
+        this.airdrops.splice(i, 1);
+
+        actionTaken = true;
+        break;
+      }
+    }
+
+    if (!actionTaken && this.isNearWater()) {
       this.stats.thirst = Math.min(100, this.stats.thirst + 45);
       window.soundEngine.playDrink();
       this.logNotification('💧 Đã uống nước ngọt lành (+45 Thirst)');
@@ -586,8 +775,83 @@ class GameEngine {
     }
   }
 
+  updateBullets(delta) {
+    for (let i = this.activeBullets.length - 1; i >= 0; i--) {
+      const b = this.activeBullets[i];
+      b.life -= delta;
+      b.mesh.position.add(b.dir.clone().multiplyScalar(b.speed));
+
+      let hit = false;
+      const bPos = b.mesh.position;
+
+      // Check collision with AI Dinos
+      for (let j = 0; j < this.aiManager.dinos.length; j++) {
+        const ai = this.aiManager.dinos[j];
+        if (!ai.isDead && bPos.distanceTo(ai.mesh.position) < 3.8) {
+          const killed = ai.takeDamage(b.damage);
+          hit = true;
+          this.logNotification(`💥 BẮN TRÚNG ${ai.type.toUpperCase()} (-${b.damage} HP)!`);
+          if (killed) {
+            const carcass = ModelBuilder.createMeatCarcass();
+            const aiGroundY = this.getTerrainHeight(ai.mesh.position.x, ai.mesh.position.z);
+            carcass.position.set(ai.mesh.position.x, aiGroundY + 0.2, ai.mesh.position.z);
+            this.scene.add(carcass);
+            this.meatCarcasses.push(carcass);
+          }
+          break;
+        }
+      }
+
+      // Check collision with Online Remote Players
+      if (!hit && window.multiplayerManager) {
+        for (const id in window.multiplayerManager.remotePlayers) {
+          const remote = window.multiplayerManager.remotePlayers[id];
+          if (bPos.distanceTo(remote.mesh.position) < 4.5) {
+            window.multiplayerManager.sendPvPDamage(b.damage);
+            hit = true;
+            this.logNotification(`💥 BẮN TRÚNG ĐỐI THỦ ONLINE (-${b.damage} HP)!`);
+            break;
+          }
+        }
+      }
+
+      if (hit || b.life <= 0) {
+        this.scene.remove(b.mesh);
+        this.activeBullets.splice(i, 1);
+      }
+    }
+  }
+
+  updateAirdrops(delta) {
+    this.airdropTimer -= delta;
+    if (this.airdropTimer <= 0) {
+      this.airdropTimer = 40;
+      this.spawnAirdrop();
+    }
+
+    for (let i = 0; i < this.airdrops.length; i++) {
+      const drop = this.airdrops[i];
+      if (!drop.isLanded) {
+        drop.position.y -= delta * 9.0;
+        if (drop.position.y <= drop.targetY + 0.1) {
+          drop.position.y = drop.targetY + 0.1;
+          drop.isLanded = true;
+          if (drop.parachuteGroup) drop.parachuteGroup.visible = false;
+          this.logNotification(`🪂 HÒM AIRDROP ĐÃ HẠ CÁNH AN TOÀN! Đến gần bấm [E] để mở hòm!`);
+        }
+      }
+    }
+  }
+
   update(delta) {
     if (!this.isGaming) return;
+
+    if (this.freezeTimer > 0) {
+      this.freezeTimer = Math.max(0, this.freezeTimer - delta);
+    }
+    if (this.disarmTimer > 0) {
+      this.disarmTimer = Math.max(0, this.disarmTimer - delta);
+    }
 
     if (this.normalAttackCooldown > 0) {
       this.normalAttackCooldown = Math.max(0, this.normalAttackCooldown - delta);
@@ -597,44 +861,54 @@ class GameEngine {
       this.skillCooldown = Math.max(0, this.skillCooldown - delta);
     }
 
+    if (this.gunFireCooldown > 0) {
+      this.gunFireCooldown = Math.max(0, this.gunFireCooldown - delta);
+    }
+
     if (this.playerMesh) {
       this.playerMesh.rotation.y = this.dinoAngleY;
     }
 
-    // 1. Movement Logic
+    // 1. Movement Logic (Blocked if Frozen!)
     const baseSpeed = (this.selectedDinoType === 'raptor' || this.selectedDinoType === 'dogerex') ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
     const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;
 
-    const inputVector = new THREE.Vector3();
-    if (this.keys['KeyW'] || this.keys['ArrowUp']) inputVector.z += 1;
-    if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1; // A = +1
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1; // D = -1
+    if (this.freezeTimer <= 0) {
+      const inputVector = new THREE.Vector3();
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) inputVector.z += 1;
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1;
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1;
 
-    if (inputVector.lengthSq() > 0) {
-      inputVector.normalize();
-      isMoving = true;
+      if (inputVector.lengthSq() > 0) {
+        inputVector.normalize();
+        isMoving = true;
 
-      const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
-      const rightDir = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
+        const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
+        const rightDir = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
 
-      const moveStep = forwardDir.clone().multiplyScalar(inputVector.z * moveSpeed)
-        .add(rightDir.clone().multiplyScalar(inputVector.x * moveSpeed));
+        const moveStep = forwardDir.clone().multiplyScalar(inputVector.z * moveSpeed)
+          .add(rightDir.clone().multiplyScalar(inputVector.x * moveSpeed));
 
-      this.playerMesh.position.add(moveStep);
+        this.playerMesh.position.add(moveStep);
 
-      if (Math.random() < 0.08) window.soundEngine.playFootstep();
+        if (Math.random() < 0.08) window.soundEngine.playFootstep();
 
-      if (moveSpeed > baseSpeed * 1.2) {
-        this.stats.stamina = Math.max(0, this.stats.stamina - delta * 18);
+        if (moveSpeed > baseSpeed * 1.2) {
+          this.stats.stamina = Math.max(0, this.stats.stamina - delta * 18);
+        }
+      } else {
+        this.stats.stamina = Math.min(100, this.stats.stamina + delta * 10);
       }
-    } else {
-      this.stats.stamina = Math.min(100, this.stats.stamina + delta * 10);
     }
 
     const currentGroundY = this.getTerrainHeight(this.playerMesh.position.x, this.playerMesh.position.z);
     this.playerMesh.position.y = currentGroundY + 0.1;
+
+    // Update Airdrops & Active bullets physics
+    this.updateAirdrops(delta);
+    this.updateBullets(delta);
 
     // Animations
     const animTime = Date.now() * 0.008;
@@ -711,26 +985,44 @@ class GameEngine {
     const prompt = document.getElementById('action-prompt');
     let text = '';
 
-    if (this.isNearWater()) {
-      text = '[E] Uống Nước Clean Water';
-    }
+    const playerPos = this.playerMesh.position;
 
-    const isHerbivore = this.selectedDinoType === 'triceratops' || this.selectedDinoType === 'stegosaurus';
-    if (!text && isHerbivore) {
-      this.foodBushes.forEach(b => {
-        if (Math.hypot(this.playerMesh.position.x - b.position.x, this.playerMesh.position.z - b.position.z) < 6.0) {
-          text = '[E] Ăn Bụi Cây Leaf Bush';
+    // Check Freeze Debuff Display
+    if (this.freezeTimer > 0) {
+      text = `🥶 ĐẮNG BĂNG! KHÔNG THỂ DI CHUYỂN (${this.freezeTimer.toFixed(1)}s)`;
+    } else if (this.disarmTimer > 0) {
+      text = `🚫 BẮY TỀ LIỆT! KHÔNG THỂ TẤN CÔNG (${this.disarmTimer.toFixed(1)}s)`;
+    } else {
+      // Check Loot Airdrops
+      for (let i = 0; i < this.airdrops.length; i++) {
+        const drop = this.airdrops[i];
+        if (Math.hypot(playerPos.x - drop.position.x, playerPos.z - drop.position.z) < 7.5) {
+          text = `[E] Mở Hòm Airdrop`;
+          break;
         }
-      });
-    }
+      }
 
-    const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex' || this.selectedDinoType === 'dogerex';
-    if (!text && isCarnivore) {
-      this.meatCarcasses.forEach(m => {
-        if (Math.hypot(this.playerMesh.position.x - m.position.x, this.playerMesh.position.z - m.position.z) < 6.0) {
-          text = '[E] Ăn Thịt Meat Carcass';
-        }
-      });
+      if (!text && this.isNearWater()) {
+        text = '[E] Uống Nước Clean Water';
+      }
+
+      const isHerbivore = this.selectedDinoType === 'triceratops' || this.selectedDinoType === 'stegosaurus';
+      if (!text && isHerbivore) {
+        this.foodBushes.forEach(b => {
+          if (Math.hypot(playerPos.x - b.position.x, playerPos.z - b.position.z) < 6.0) {
+            text = '[E] Ăn Bụi Cây Leaf Bush';
+          }
+        });
+      }
+
+      const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex' || this.selectedDinoType === 'dogerex';
+      if (!text && isCarnivore) {
+        this.meatCarcasses.forEach(m => {
+          if (Math.hypot(playerPos.x - m.position.x, playerPos.z - m.position.z) < 6.0) {
+            text = '[E] Ăn Thịt Meat Carcass';
+          }
+        });
+      }
     }
 
     if (text) {
@@ -760,6 +1052,16 @@ class GameEngine {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     const scale = 0.6;
+
+    // Airdrops (Glowing Red Circles on minimap)
+    ctx.fillStyle = '#ff3300';
+    this.airdrops.forEach(drop => {
+      const dx = (drop.position.x - this.playerMesh.position.x) * scale;
+      const dy = (drop.position.z - this.playerMesh.position.z) * scale;
+      ctx.beginPath();
+      ctx.arc(cx + dx, cy + dy, 7, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
     // Lakes
     ctx.fillStyle = '#3498db';

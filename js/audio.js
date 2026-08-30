@@ -1,4 +1,4 @@
-/* js/audio.js - Procedural Dinosaur & Dog-Rex Audio Synthesizer */
+/* js/audio.js - Procedural Dinosaur, Dog-Rex & Gunshot Audio Synthesizer */
 
 class SoundEngine {
   constructor() {
@@ -13,12 +13,60 @@ class SoundEngine {
     this.initialized = true;
   }
 
+  playGunshot(gunType = 'ak47') {
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    if (gunType === 'plasma') {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(120, t + 0.25);
+
+      gain.gain.setValueAtTime(0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.25);
+      return;
+    }
+
+    const bufferSize = this.ctx.sampleRate * (gunType === 'shotgun' ? 0.35 : 0.18);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(gunType === 'shotgun' ? 1400 : 2200, t);
+    filter.frequency.exponentialRampToValueAtTime(100, t + (gunType === 'shotgun' ? 0.3 : 0.15));
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.8, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + (gunType === 'shotgun' ? 0.35 : 0.18));
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + (gunType === 'shotgun' ? 0.35 : 0.18));
+  }
+
   playDogBark() {
     this.init();
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
 
-    // Dog Bark Pitch Drop: 350Hz down to 100Hz in 0.15s
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();

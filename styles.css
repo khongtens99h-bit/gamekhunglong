@@ -45,6 +45,23 @@ body, html {
   z-index: 1;
 }
 
+/* ================= WEAPON CARD HUD ================= */
+.weapon-card {
+  background: rgba(40, 30, 10, 0.85);
+  border: 1px solid #f1c40f;
+  border-radius: 12px;
+  padding: 0.6rem 1.0rem;
+  box-shadow: 0 0 15px rgba(241, 196, 15, 0.4);
+}
+.weapon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
 /* ================= SCENT OVERLAY ================= */
 #scent-overlay {
   position: absolute;

@@ -43,7 +43,7 @@
   <div id="menu-screen">
     <div class="title-container">
       <h1>THE DINO ISLE</h1>
-      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D MULTIPLAYER</p>
+      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D MULTIPLAYER & SÚNG NỐI</p>
     </div>
 
     <!-- Game Mode Selection Panel -->
@@ -188,6 +188,14 @@
           <div class="hud-stat-bar"><div id="stamina-fill" class="hud-stat-fill"></div></div>
         </div>
 
+        <!-- Weapon & Ammo Badge -->
+        <div id="weapon-status-card" class="weapon-card" style="display: none;">
+          <div class="weapon-header">
+            <span id="weapon-name-text">🔫 AK-47</span>
+            <span id="weapon-ammo-text" style="color: #f1c40f; font-weight: 800;">30 / 30 ĐẠN</span>
+          </div>
+        </div>
+
         <div class="hud-stat-group">
           <div class="hud-stat-header"><span>Độ Đói (Hunger)</span></div>
           <div class="hud-stat-bar"><div id="hunger-fill" class="hud-stat-fill"></div></div>
@@ -225,15 +233,14 @@
     <!-- HUD Bottom Guides -->
     <div class="hud-bottom">
       <div class="controls-guide">
-        <div><span class="key-badge">RÊ CHUỘT</span> Quay Hướng</div>
-        <div><span class="key-badge">ALT</span> Free Camera</div>
-        <div><span class="key-badge">CHUỘT TRÁI</span> Đánh Thường (0.9s CD)</div>
+        <div><span class="key-badge">E</span> Nhặt Súng / Ăn / Uống</div>
+        <div><span class="key-badge">F</span> BẮN SÚNG 🔫</div>
+        <div><span class="key-badge">CHUỘT TRÁI</span> Cắn / Bắn Súng</div>
         <div><span class="key-badge">CHUỘT PHẢI</span> Kỹ Năng</div>
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
         <div><span class="key-badge">SHIFT</span> Chạy</div>
         <div><span class="key-badge">Q</span> Đánh hơi</div>
-        <div><span class="key-badge">E</span> Ăn / Uống</div>
-        <div><span class="key-badge">1 - 4</span> Tiếng Gầm / Sủa Gâu Gâu</div>
+        <div><span class="key-badge">1 - 4</span> Tiếng Gầm / Sủa</div>
       </div>
     </div>
   </div>
