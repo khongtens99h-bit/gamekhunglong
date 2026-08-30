@@ -1,11 +1,11 @@
-/* js/game.js - Engine Supporting 1v1 Online PvP Arena & Survival Modes */
+/* js/game.js - Engine Supporting 1v1 Online PvP Arena & Reliable Opponent Rendering */
 
 class GameEngine {
   constructor() {
     this.container = document.getElementById('canvas-container');
     this.selectedDinoType = 'raptor';
     this.difficulty = 'normal';
-    this.gameMode = 'survival'; // 'survival' or 'pvp1v1'
+    this.gameMode = 'survival';
 
     this.stats = {
       hp: 100,
@@ -172,8 +172,8 @@ class GameEngine {
 
     let aiSpawnCount = 18;
     if (this.gameMode === 'pvp1v1') {
-      aiSpawnCount = 0; // No AI in 1v1 Arena!
-      this.depletionRate = { hunger: 0, thirst: 0 }; // No hunger/thirst in 1v1 Arena!
+      aiSpawnCount = 0;
+      this.depletionRate = { hunger: 0, thirst: 0 };
       document.getElementById('pvp-arena-hud').style.display = 'flex';
       document.getElementById('p1-dino-title').innerText = `BẠN (${dinoType.toUpperCase()})`;
     } else {
@@ -196,10 +196,16 @@ class GameEngine {
     if (this.playerMesh) this.scene.remove(this.playerMesh);
     this.playerMesh = ModelBuilder.createDinosaur(dinoType, false);
     
-    // Spawn positions: Host at z=-10, Joiner at z=10 facing each other for 1v1
-    const spawnZ = (window.multiplayerManager && window.multiplayerManager.isHost) ? -10 : 10;
+    // Spawn position: Host at (0, y, -8), Joiner at (0, y, 8) facing each other
+    const isHost = window.multiplayerManager && window.multiplayerManager.isHost;
+    const spawnZ = isHost ? -8 : 8;
     const startY = this.getTerrainHeight(0, spawnZ);
     this.playerMesh.position.set(0, startY + 0.1, spawnZ);
+
+    // Initial facing: Host faces +Z, Joiner faces -Z
+    this.dinoAngleY = isHost ? 0 : Math.PI;
+    this.cameraAngleY = this.dinoAngleY;
+    this.playerMesh.rotation.y = this.dinoAngleY;
     this.scene.add(this.playerMesh);
 
     const maxHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'triceratops' ? 130 : 100));
@@ -208,7 +214,7 @@ class GameEngine {
     this.stats.stamina = 100;
     this.stats.hunger = 100;
     this.stats.thirst = 100;
-    this.stats.growth = this.gameMode === 'pvp1v1' ? 80 : 15; // Start adult size in 1v1 Arena
+    this.stats.growth = this.gameMode === 'pvp1v1' ? 80 : 15;
     this.updateScaleByGrowth();
 
     document.getElementById('menu-screen').style.display = 'none';
@@ -217,12 +223,17 @@ class GameEngine {
 
     this.aiManager.spawnInitialDinos(aiSpawnCount, this.difficulty);
 
+    // Ensure remote player 3D meshes are added to scene immediately
+    if (window.multiplayerManager) {
+      window.multiplayerManager.onGameStarted(this.scene);
+    }
+
     this.clock = new THREE.Clock();
     this.isGaming = true;
 
     document.body.requestPointerLock();
     if (this.gameMode === 'pvp1v1') {
-      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 ONLINE: Hạ gục đối thủ để giành chiến thắng!`);
+      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 ONLINE: Đối thủ có CỘT SÁNG XANH DƯƠNG trên đầu!`);
     } else {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
       this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
@@ -327,7 +338,7 @@ class GameEngine {
     if (window.multiplayerManager) {
       for (const id in window.multiplayerManager.remotePlayers) {
         const remote = window.multiplayerManager.remotePlayers[id];
-        if (playerPos.distanceTo(remote.mesh.position) < 6.0) {
+        if (playerPos.distanceTo(remote.mesh.position) < 6.5) {
           window.multiplayerManager.sendPvPDamage(baseDamage);
           hitCount++;
           this.logNotification(`⚔️ ĐÃ ĐÁNH TRÚNG ĐỐI THỦ ONLINE (-${baseDamage} HP)!`);
@@ -396,7 +407,7 @@ class GameEngine {
     if (window.multiplayerManager) {
       for (const id in window.multiplayerManager.remotePlayers) {
         const remote = window.multiplayerManager.remotePlayers[id];
-        if (this.playerMesh.position.distanceTo(remote.mesh.position) < 7.5) {
+        if (this.playerMesh.position.distanceTo(remote.mesh.position) < 8.0) {
           window.multiplayerManager.sendPvPDamage(skillDamage);
           hit = true;
           this.logNotification(`💥 KỸ NĂNG TRÚNG ĐỐI THỦ ONLINE (-${skillDamage} HP)!`);
@@ -464,7 +475,6 @@ class GameEngine {
     this.stats.hp = Math.max(0, this.stats.hp - amount);
     this.logNotification(`🚨 NGUY HIỂM: Bị ${attackerType.toUpperCase()} tấn công (-${amount} HP)!`);
 
-    // Update PvP Arena P1 Health Bar
     if (this.gameMode === 'pvp1v1') {
       const p1HpFill = document.getElementById('p1-pvp-hp-fill');
       if (p1HpFill) {
@@ -679,7 +689,7 @@ class GameEngine {
         const dx = (remote.mesh.position.x - this.playerMesh.position.x) * scale;
         const dy = (remote.mesh.position.z - this.playerMesh.position.z) * scale;
         ctx.beginPath();
-        ctx.arc(cx + dx, cy + dy, 6, 0, Math.PI * 2);
+        ctx.arc(cx + dx, cy + dy, 7, 0, Math.PI * 2);
         ctx.fill();
       }
     }
