@@ -20,11 +20,30 @@
     <div id="scent-title"><i class="fa-solid fa-wind"></i> CHẾ ĐỘ ĐÁNH HƠI (SCENT MODE)</div>
   </div>
 
+  <!-- 1v1 Arena Online PvP HUD Header -->
+  <div id="pvp-arena-hud" style="display: none;">
+    <div class="pvp-player-card">
+      <div class="pvp-player-name" id="p1-dino-title" style="color: #2ecc71;">BẠN (PLAYER 1)</div>
+      <div class="pvp-hp-bar"><div id="p1-pvp-hp-fill" class="pvp-hp-fill" style="background: #2ecc71;"></div></div>
+    </div>
+    <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: #e74c3c;">VS</div>
+    <div class="pvp-player-card" style="align-items: flex-end;">
+      <div class="pvp-player-name" id="p2-dino-title" style="color: #ff6b6b;">ĐỐI THỦ (PLAYER 2)</div>
+      <div class="pvp-hp-bar"><div id="p2-pvp-hp-fill" class="pvp-hp-fill" style="background: #e74c3c;"></div></div>
+    </div>
+  </div>
+
   <!-- Main Menu / Dino Selection Screen -->
   <div id="menu-screen">
     <div class="title-container">
       <h1>THE DINO ISLE</h1>
       <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D MULTIPLAYER</p>
+    </div>
+
+    <!-- Game Mode Selection Panel -->
+    <div class="mode-panel">
+      <button class="mode-btn selected" data-mode="survival" onclick="selectGameMode(this, 'survival')">🏝️ Sinh Tồn Khảo Sát (Island Survival)</button>
+      <button class="mode-btn" data-mode="pvp1v1" onclick="selectGameMode(this, 'pvp1v1')">⚔️ Đấu Trường 1v1 Solo (Online PvP Arena)</button>
     </div>
 
     <!-- Multiplayer Online Panel -->
@@ -190,7 +209,7 @@
   <!-- Game Over Screen -->
   <div id="game-over-screen">
     <h2>BẠN ĐÃ DIỆT VONG</h2>
-    <p style="color: #8fa397; font-size: 1.2rem;">Khủng long của bạn không thể tiếp tục sinh tồn trước bầy khủng long săn mồi.</p>
+    <p style="color: #8fa397; font-size: 1.2rem;">Khủng long của bạn không thể tiếp tục sinh tồn trước đòn đánh hủy diệt.</p>
     <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
       <i class="fa-solid fa-rotate-right"></i> Tái Sinh
     </button>
@@ -207,6 +226,7 @@
   <script>
     let chosenDinoType = 'raptor';
     let chosenDifficulty = 'normal';
+    let chosenGameMode = 'survival';
 
     function selectDinoCard(element, dinoType) {
       document.querySelectorAll('.dino-card').forEach(card => card.classList.remove('selected'));
@@ -218,6 +238,12 @@
       document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       chosenDifficulty = diff;
+    }
+
+    function selectGameMode(btn, mode) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      chosenGameMode = mode;
     }
 
     function hostOnlineRoom() {
@@ -249,7 +275,7 @@
       if (!window.gameEngine) {
         window.gameEngine = new GameEngine();
       }
-      window.gameEngine.startGame(chosenDinoType, chosenDifficulty);
+      window.gameEngine.startGame(chosenDinoType, chosenDifficulty, chosenGameMode);
     }
   </script>
 </body>

@@ -1,10 +1,11 @@
-/* js/game.js - Engine Supporting Difficulty Selection (Easy, Normal, Hard, Apex Nightmare) */
+/* js/game.js - Engine Supporting 1v1 Online PvP Arena & Survival Modes */
 
 class GameEngine {
   constructor() {
     this.container = document.getElementById('canvas-container');
     this.selectedDinoType = 'raptor';
     this.difficulty = 'normal';
+    this.gameMode = 'survival'; // 'survival' or 'pvp1v1'
 
     this.stats = {
       hp: 100,
@@ -19,7 +20,6 @@ class GameEngine {
       growthStage: 'Hatchling'
     };
 
-    // Difficulty Rate Multipliers
     this.depletionRate = { hunger: 0.6, thirst: 0.8 };
 
     this.skillCooldown = 0;
@@ -165,40 +165,50 @@ class GameEngine {
     this.aiManager = new AIManager(this.scene);
   }
 
-  startGame(dinoType, difficultyLevel = 'normal') {
+  startGame(dinoType, difficultyLevel = 'normal', mode = 'survival') {
     this.selectedDinoType = dinoType;
     this.difficulty = difficultyLevel;
+    this.gameMode = mode;
 
-    // Apply difficulty settings
     let aiSpawnCount = 18;
-    if (this.difficulty === 'easy') {
-      aiSpawnCount = 10;
-      this.depletionRate = { hunger: 0.35, thirst: 0.45 };
-    } else if (this.difficulty === 'normal') {
-      aiSpawnCount = 16;
-      this.depletionRate = { hunger: 0.6, thirst: 0.8 };
-    } else if (this.difficulty === 'hard') {
-      aiSpawnCount = 24;
-      this.depletionRate = { hunger: 1.1, thirst: 1.4 };
-    } else if (this.difficulty === 'nightmare') {
-      aiSpawnCount = 32;
-      this.depletionRate = { hunger: 1.6, thirst: 1.9 };
+    if (this.gameMode === 'pvp1v1') {
+      aiSpawnCount = 0; // No AI in 1v1 Arena!
+      this.depletionRate = { hunger: 0, thirst: 0 }; // No hunger/thirst in 1v1 Arena!
+      document.getElementById('pvp-arena-hud').style.display = 'flex';
+      document.getElementById('p1-dino-title').innerText = `BẠN (${dinoType.toUpperCase()})`;
+    } else {
+      document.getElementById('pvp-arena-hud').style.display = 'none';
+      if (this.difficulty === 'easy') {
+        aiSpawnCount = 10;
+        this.depletionRate = { hunger: 0.35, thirst: 0.45 };
+      } else if (this.difficulty === 'normal') {
+        aiSpawnCount = 16;
+        this.depletionRate = { hunger: 0.6, thirst: 0.8 };
+      } else if (this.difficulty === 'hard') {
+        aiSpawnCount = 24;
+        this.depletionRate = { hunger: 1.1, thirst: 1.4 };
+      } else if (this.difficulty === 'nightmare') {
+        aiSpawnCount = 32;
+        this.depletionRate = { hunger: 1.6, thirst: 1.9 };
+      }
     }
 
     if (this.playerMesh) this.scene.remove(this.playerMesh);
     this.playerMesh = ModelBuilder.createDinosaur(dinoType, false);
     
-    const startY = this.getTerrainHeight(0, 0);
-    this.playerMesh.position.set(0, startY + 0.1, 0);
+    // Spawn positions: Host at z=-10, Joiner at z=10 facing each other for 1v1
+    const spawnZ = (window.multiplayerManager && window.multiplayerManager.isHost) ? -10 : 10;
+    const startY = this.getTerrainHeight(0, spawnZ);
+    this.playerMesh.position.set(0, startY + 0.1, spawnZ);
     this.scene.add(this.playerMesh);
 
     const maxHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'triceratops' ? 130 : 100));
     this.stats.hp = maxHp;
     this.stats.maxHp = maxHp;
     this.stats.stamina = 100;
-    this.stats.hunger = 85;
-    this.stats.thirst = 85;
-    this.stats.growth = 15;
+    this.stats.hunger = 100;
+    this.stats.thirst = 100;
+    this.stats.growth = this.gameMode === 'pvp1v1' ? 80 : 15; // Start adult size in 1v1 Arena
     this.updateScaleByGrowth();
 
     document.getElementById('menu-screen').style.display = 'none';
@@ -211,8 +221,12 @@ class GameEngine {
     this.isGaming = true;
 
     document.body.requestPointerLock();
-    const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
-    this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
+    if (this.gameMode === 'pvp1v1') {
+      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 ONLINE: Hạ gục đối thủ để giành chiến thắng!`);
+    } else {
+      const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
+      this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
+    }
     this.animate();
   }
 
@@ -289,6 +303,7 @@ class GameEngine {
     let hitCount = 0;
     const baseDamage = this.selectedDinoType === 'trex' ? 50 : (this.selectedDinoType === 'stegosaurus' ? 40 : 35);
 
+    // AI Damage
     this.aiManager.dinos.forEach(ai => {
       if (!ai.isDead) {
         const dist = playerPos.distanceTo(ai.mesh.position);
@@ -307,6 +322,18 @@ class GameEngine {
         }
       }
     });
+
+    // PvP Online Opponent Damage
+    if (window.multiplayerManager) {
+      for (const id in window.multiplayerManager.remotePlayers) {
+        const remote = window.multiplayerManager.remotePlayers[id];
+        if (playerPos.distanceTo(remote.mesh.position) < 6.0) {
+          window.multiplayerManager.sendPvPDamage(baseDamage);
+          hitCount++;
+          this.logNotification(`⚔️ ĐÃ ĐÁNH TRÚNG ĐỐI THỦ ONLINE (-${baseDamage} HP)!`);
+        }
+      }
+    }
 
     if (hitCount === 0) {
       this.logNotification(`Đòn đánh thường!`);
@@ -365,6 +392,17 @@ class GameEngine {
         }
       }
     });
+
+    if (window.multiplayerManager) {
+      for (const id in window.multiplayerManager.remotePlayers) {
+        const remote = window.multiplayerManager.remotePlayers[id];
+        if (this.playerMesh.position.distanceTo(remote.mesh.position) < 7.5) {
+          window.multiplayerManager.sendPvPDamage(skillDamage);
+          hit = true;
+          this.logNotification(`💥 KỸ NĂNG TRÚNG ĐỐI THỦ ONLINE (-${skillDamage} HP)!`);
+        }
+      }
+    }
 
     if (!hit) {
       this.logNotification(`⚡ SKILL: Kích hoạt Kỹ năng Tuyệt kỹ!`);
@@ -425,6 +463,16 @@ class GameEngine {
   takePlayerDamage(amount, attackerType) {
     this.stats.hp = Math.max(0, this.stats.hp - amount);
     this.logNotification(`🚨 NGUY HIỂM: Bị ${attackerType.toUpperCase()} tấn công (-${amount} HP)!`);
+
+    // Update PvP Arena P1 Health Bar
+    if (this.gameMode === 'pvp1v1') {
+      const p1HpFill = document.getElementById('p1-pvp-hp-fill');
+      if (p1HpFill) {
+        const pct = Math.max(0, (this.stats.hp / this.stats.maxHp) * 100);
+        p1HpFill.style.width = `${pct}%`;
+      }
+    }
+
     if (this.stats.hp <= 0) {
       this.gameOver();
     }
@@ -498,12 +546,14 @@ class GameEngine {
     this.camera.position.z = this.playerMesh.position.z - Math.cos(this.cameraAngleY) * Math.cos(this.cameraAngleX) * camDist;
     this.camera.lookAt(this.playerMesh.position.x, this.playerMesh.position.y + 1.5, this.playerMesh.position.z);
 
-    // 3. SURVIVAL DEPLETION BY DIFFICULTY LEVEL
-    this.stats.hunger = Math.max(0, this.stats.hunger - delta * this.depletionRate.hunger);
-    this.stats.thirst = Math.max(0, this.stats.thirst - delta * this.depletionRate.thirst);
+    // 3. SURVIVAL DEPLETION (Only in Survival mode)
+    if (this.gameMode === 'survival') {
+      this.stats.hunger = Math.max(0, this.stats.hunger - delta * this.depletionRate.hunger);
+      this.stats.thirst = Math.max(0, this.stats.thirst - delta * this.depletionRate.thirst);
 
-    if (this.stats.hunger <= 0 || this.stats.thirst <= 0) {
-      this.stats.hp = Math.max(0, this.stats.hp - delta * 6);
+      if (this.stats.hunger <= 0 || this.stats.thirst <= 0) {
+        this.stats.hp = Math.max(0, this.stats.hp - delta * 6);
+      }
     }
 
     // 4. Growth
@@ -621,7 +671,7 @@ class GameEngine {
       }
     });
 
-    // Remote Players
+    // Remote Players (Cyan dots)
     if (window.multiplayerManager) {
       for (const id in window.multiplayerManager.remotePlayers) {
         const remote = window.multiplayerManager.remotePlayers[id];

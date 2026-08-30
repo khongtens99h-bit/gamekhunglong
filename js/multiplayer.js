@@ -1,4 +1,4 @@
-/* js/multiplayer.js - PeerJS WebRTC P2P Multiplayer System */
+/* js/multiplayer.js - PeerJS WebRTC P2P Multiplayer & 1v1 PvP Arena System */
 
 class MultiplayerManager {
   constructor() {
@@ -6,7 +6,7 @@ class MultiplayerManager {
     this.conn = null;
     this.isHost = false;
     this.roomCode = '';
-    this.remotePlayers = {}; // id -> { mesh, targetPos, targetRotY, dinoType, hp }
+    this.remotePlayers = {}; // id -> { mesh, targetPos, targetRotY, dinoType, hp, maxHp }
     this.initialized = false;
   }
 
@@ -116,12 +116,14 @@ class MultiplayerManager {
           rotY: engine.dinoAngleY,
           dinoType: engine.selectedDinoType,
           hp: engine.stats.hp,
+          maxHp: engine.stats.maxHp,
           growth: engine.stats.growth,
+          gameMode: engine.gameMode,
           isMoving: engine.keys['KeyW'] || engine.keys['KeyS'] || engine.keys['KeyA'] || engine.keys['KeyD']
         };
         this.conn.send(payload);
       }
-    }, 40); // 25 updates per second
+    }, 40);
   }
 
   sendEvent(eventName, eventData = {}) {
@@ -134,6 +136,15 @@ class MultiplayerManager {
     }
   }
 
+  sendPvPDamage(damage) {
+    if (this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'pvp_damage',
+        amount: damage
+      });
+    }
+  }
+
   handleNetworkData(data) {
     if (!window.gameEngine || !window.gameEngine.isGaming) return;
 
@@ -142,7 +153,6 @@ class MultiplayerManager {
 
     if (data.type === 'transform') {
       if (!this.remotePlayers[peerId]) {
-        // Create remote player mesh
         const remoteMesh = ModelBuilder.createDinosaur(data.dinoType, true);
         scene.add(remoteMesh);
         this.remotePlayers[peerId] = {
@@ -150,25 +160,39 @@ class MultiplayerManager {
           targetPos: new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z),
           targetRotY: data.rotY,
           dinoType: data.dinoType,
+          hp: data.hp,
+          maxHp: data.maxHp,
           animTime: 0
         };
-        window.gameEngine.logNotification(`🦖 Khủng long ${data.dinoType.toUpperCase()} xuất hiện trong map!`);
+        window.gameEngine.logNotification(`⚔️ Đối thủ (${data.dinoType.toUpperCase()}) vừa vào màn chơi!`);
       }
 
       const remote = this.remotePlayers[peerId];
       remote.targetPos.set(data.pos.x, data.pos.y, data.pos.z);
       remote.targetRotY = data.rotY;
+      remote.hp = data.hp;
+      remote.maxHp = data.maxHp;
 
-      // Update scale by growth
+      // Update 1v1 PvP HUD if in PvP mode
+      if (window.gameEngine.gameMode === 'pvp1v1') {
+        const p2HpFill = document.getElementById('p2-pvp-hp-fill');
+        if (p2HpFill) {
+          const pct = Math.max(0, (remote.hp / remote.maxHp) * 100);
+          p2HpFill.style.width = `${pct}%`;
+        }
+      }
+
       const scale = 0.5 + (data.growth / 100) * 0.7;
       remote.mesh.scale.set(scale, scale, scale);
+    } else if (data.type === 'pvp_damage') {
+      // Local player takes hit from remote opponent!
+      window.gameEngine.takePlayerDamage(data.amount, 'ĐỐI THỦ ONLINE');
+      if (window.soundEngine) window.soundEngine.playAttack();
     } else if (data.type === 'event') {
       if (data.event === 'attack') {
         if (window.soundEngine) window.soundEngine.playAttack();
-        window.gameEngine.logNotification(`⚠️ Đối thủ vừa tung đòn đánh!`);
       } else if (data.event === 'skill') {
         if (window.soundEngine) window.soundEngine.playSkill();
-        window.gameEngine.logNotification(`💥 Đối thủ vừa dùng Tuyệt Kỹ!`);
       } else if (data.event === 'roar') {
         if (window.soundEngine) window.soundEngine.playRoar(data.data.roarType || 'apex');
       }
@@ -176,7 +200,6 @@ class MultiplayerManager {
   }
 
   update(delta) {
-    // Lerp remote player positions smoothly
     for (const id in this.remotePlayers) {
       const remote = this.remotePlayers[id];
       remote.mesh.position.lerp(remote.targetPos, 0.25);

@@ -99,7 +99,7 @@ body, html {
 
 .title-container {
   text-align: center;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.0rem;
 }
 .title-container h1 {
   font-family: 'Cinzel', serif;
@@ -119,13 +119,47 @@ body, html {
   text-transform: uppercase;
 }
 
+/* GAME MODE SELECTION */
+.mode-panel {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.mode-btn {
+  padding: 0.7rem 1.6rem;
+  border-radius: 30px;
+  border: 2px solid var(--panel-border);
+  background: rgba(15, 23, 20, 0.8);
+  color: var(--text-muted);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.mode-btn:hover {
+  transform: translateY(-3px);
+}
+.mode-btn.selected[data-mode="survival"] {
+  border-color: #2ecc71;
+  color: #2ecc71;
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+  background: rgba(46, 204, 113, 0.15);
+}
+.mode-btn.selected[data-mode="pvp1v1"] {
+  border-color: #e74c3c;
+  color: #ff6b6b;
+  box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+  background: rgba(231, 76, 60, 0.2);
+}
+
 /* MULTIPLAYER PANEL */
 .multiplayer-box {
   background: rgba(20, 32, 25, 0.8);
   border: 1px solid rgba(46, 204, 113, 0.3);
   border-radius: 16px;
   padding: 0.8rem 1.6rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.0rem;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -166,9 +200,9 @@ body, html {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
   background: rgba(15, 23, 20, 0.7);
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1.2rem;
   border-radius: 30px;
   border: 1px solid var(--panel-border);
 }
@@ -180,7 +214,7 @@ body, html {
   text-transform: uppercase;
 }
 .diff-btn {
-  padding: 0.5rem 1.1rem;
+  padding: 0.4rem 1.0rem;
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.15);
   background: rgba(0,0,0,0.4);
@@ -332,6 +366,50 @@ body, html {
 .btn-start:hover {
   transform: scale(1.05);
   box-shadow: 0 15px 35px rgba(46, 204, 113, 0.6);
+}
+
+/* ================= 1v1 ARENA PvP HUD ================= */
+#pvp-arena-hud {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: rgba(10, 15, 12, 0.85);
+  border: 2px solid rgba(231, 76, 60, 0.5);
+  backdrop-filter: blur(12px);
+  padding: 0.8rem 2rem;
+  border-radius: 40px;
+  z-index: 10;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.4);
+}
+.pvp-player-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+}
+.pvp-player-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+.pvp-hp-bar {
+  width: 100%;
+  height: 14px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.pvp-hp-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 7px;
+  transition: width 0.3s ease;
 }
 
 /* ================= IN-GAME HUD ================= */
