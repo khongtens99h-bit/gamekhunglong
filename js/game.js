@@ -1,4 +1,4 @@
-/* js/game.js - Engine With Guaranteed Debounced Round Resets and Zero Auto-Healing Loops */
+/* js/game.js - Engine With Robust Tab-Out/In Mouse Steering and Pointer Lock Recovery */
 
 class GameEngine {
   constructor() {
@@ -11,7 +11,7 @@ class GameEngine {
     this.p1Score = 0;
     this.p2Score = 0;
 
-    this.isResettingRound = false; // Debounce guard for round resets
+    this.isResettingRound = false;
 
     this.stats = {
       hp: 100,
@@ -256,7 +256,7 @@ class GameEngine {
   }
 
   respawnNextRound(sendNetwork = true) {
-    if (this.isResettingRound) return; // Prevent double/continuous execution!
+    if (this.isResettingRound) return;
     this.isResettingRound = true;
     setTimeout(() => { this.isResettingRound = false; }, 1000);
 
@@ -332,6 +332,17 @@ class GameEngine {
       this.keys[e.code] = false;
     });
 
+    // Clear stuck keys when tabbing out or switching windows
+    window.addEventListener('blur', () => {
+      this.keys = {};
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement !== document.body) {
+        this.keys = {};
+      }
+    });
+
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
     this.container.addEventListener('click', () => {
@@ -342,6 +353,10 @@ class GameEngine {
 
     window.addEventListener('mousemove', (e) => {
       if (!this.isGaming) return;
+      if (document.pointerLockElement !== document.body) return; // Only rotate when pointer locked!
+
+      // Filter out huge bogus mouse movement spikes when tabbing back into game window
+      if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
 
       const sensitivity = 0.0035;
       this.cameraAngleY -= e.movementX * sensitivity;
