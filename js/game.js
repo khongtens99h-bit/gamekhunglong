@@ -1,4 +1,4 @@
-/* js/game.js - Engine with Fixed Intutive A/D Left-Right Movement Keys */
+/* js/game.js - Engine with Inverted A/D Key Movement */
 
 class GameEngine {
   constructor() {
@@ -521,7 +521,7 @@ class GameEngine {
       this.playerMesh.rotation.y = this.dinoAngleY;
     }
 
-    // 1. Movement Logic (FIXED A/D LEFTRIGHT MOVEMENT)
+    // 1. Movement Logic (A/D Inverted per user demand)
     const baseSpeed = this.selectedDinoType === 'raptor' ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
     const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;
@@ -529,8 +529,8 @@ class GameEngine {
     const inputVector = new THREE.Vector3();
     if (this.keys['KeyW'] || this.keys['ArrowUp']) inputVector.z += 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x -= 1; // KeyA = Left (-1)
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x += 1; // KeyD = Right (+1)
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1; // Reversed: A = +1
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1; // Reversed: D = -1
 
     if (inputVector.lengthSq() > 0) {
       inputVector.normalize();
