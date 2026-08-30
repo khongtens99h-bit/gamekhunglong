@@ -1,4 +1,4 @@
-/* js/game.js - Engine with Inverted A/D Key Movement */
+/* js/game.js - Engine Supporting Seamless BO1/BO3/BO5 Next Round Respawning */
 
 class GameEngine {
   constructor() {
@@ -175,6 +175,8 @@ class GameEngine {
     this.difficulty = difficultyLevel;
     this.gameMode = mode;
     this.matchFormat = matchFmt;
+    this.p1Score = 0;
+    this.p2Score = 0;
 
     let aiSpawnCount = 18;
     if (this.gameMode === 'pvp1v1') {
@@ -245,6 +247,34 @@ class GameEngine {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
       this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
     }
+    this.animate();
+  }
+
+  respawnNextRound() {
+    // Reset player HP and stats without page reload
+    this.stats.hp = this.stats.maxHp;
+    this.stats.stamina = 100;
+    this.stats.hunger = 100;
+    this.stats.thirst = 100;
+
+    const isHost = window.multiplayerManager && window.multiplayerManager.isHost;
+    const spawnZ = isHost ? -8 : 8;
+    const startY = this.getTerrainHeight(0, spawnZ);
+    this.playerMesh.position.set(0, startY + 0.1, spawnZ);
+
+    this.dinoAngleY = isHost ? 0 : Math.PI;
+    this.cameraAngleY = this.dinoAngleY;
+    this.playerMesh.rotation.y = this.dinoAngleY;
+
+    // Update HUD bars
+    const p1HpFill = document.getElementById('p1-pvp-hp-fill');
+    if (p1HpFill) p1HpFill.style.width = '100%';
+
+    document.getElementById('game-over-screen').classList.remove('active');
+    this.logNotification(`🔥 HIỆP ĐẤU MỚI BẮT ĐẦU! HÃY SẴN SÀNG!`);
+
+    this.isGaming = true;
+    document.body.requestPointerLock();
     this.animate();
   }
 
@@ -529,8 +559,8 @@ class GameEngine {
     const inputVector = new THREE.Vector3();
     if (this.keys['KeyW'] || this.keys['ArrowUp']) inputVector.z += 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1; // Reversed: A = +1
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1; // Reversed: D = -1
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1; // A = +1
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1; // D = -1
 
     if (inputVector.lengthSq() > 0) {
       inputVector.normalize();
@@ -736,7 +766,45 @@ class GameEngine {
   gameOver() {
     this.isGaming = false;
     document.exitPointerLock();
-    document.getElementById('game-over-screen').classList.add('active');
+
+    const gameOverOverlay = document.getElementById('game-over-screen');
+    const title = document.getElementById('game-over-title');
+    const desc = document.getElementById('game-over-desc');
+    const btnContainer = document.getElementById('game-over-buttons');
+
+    if (this.gameMode === 'pvp1v1') {
+      this.p2Score += 1; // Opponent scored
+      this.update1v1ScoreUI();
+
+      const winsNeeded = this.matchFormat === 'bo1' ? 1 : (this.matchFormat === 'bo3' ? 2 : 3);
+      if (this.p2Score >= winsNeeded) {
+        title.innerText = `ĐỐI THỦ THẮNG CHUNG CUỘC ${this.matchFormat.toUpperCase()}!`;
+        desc.innerText = `Tỉ số chung cuộc: ${this.p1Score} - ${this.p2Score}. Cố gắng hơn ở lần sau!`;
+        btnContainer.innerHTML = `
+          <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
+            <i class="fa-solid fa-house"></i> Về Menu Chính
+          </button>
+        `;
+      } else {
+        title.innerText = `KẾT THÚC HIỆP ĐẤU!`;
+        desc.innerText = `Đối thủ thắng hiệp này. Tỉ số hiện tại: ${this.p1Score} - ${this.p2Score}`;
+        btnContainer.innerHTML = `
+          <button class="btn-start" onclick="window.gameEngine.respawnNextRound()" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: #fff;">
+            <i class="fa-solid fa-play"></i> Sang Hiệp Tiếp Theo ➔
+          </button>
+        `;
+      }
+    } else {
+      title.innerText = `BẠN ĐÃ DIỆT VONG`;
+      desc.innerText = `Khủng long của bạn không thể tiếp tục sinh tồn trước đòn đánh hủy diệt.`;
+      btnContainer.innerHTML = `
+        <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
+          <i class="fa-solid fa-rotate-right"></i> Tái Sinh
+        </button>
+      `;
+    }
+
+    gameOverOverlay.classList.add('active');
   }
 
   onWindowResize() {

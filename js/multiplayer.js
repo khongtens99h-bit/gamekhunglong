@@ -1,4 +1,4 @@
-/* js/multiplayer.js - PeerJS WebRTC P2P Multiplayer & Reliable Remote Rendering */
+/* js/multiplayer.js - PeerJS WebRTC P2P Multiplayer & 1v1 BO Match Round Synchronization */
 
 class MultiplayerManager {
   constructor() {
@@ -6,7 +6,7 @@ class MultiplayerManager {
     this.conn = null;
     this.isHost = false;
     this.roomCode = '';
-    this.remotePlayers = {}; // id -> { mesh, targetPos, targetRotY, dinoType, hp, maxHp, beacon }
+    this.remotePlayers = {}; // id -> { mesh, targetPos, targetRotY, dinoType, hp, maxHp }
     this.initialized = false;
   }
 
@@ -123,11 +123,10 @@ class MultiplayerManager {
         };
         this.conn.send(payload);
       }
-    }, 40); // 25 updates/sec
+    }, 40);
   }
 
   onGameStarted(scene) {
-    // Ensure all remote players are spawned into the 3D scene when game starts
     for (const peerId in this.remotePlayers) {
       const remote = this.remotePlayers[peerId];
       if (!remote.meshInScene) {
@@ -156,15 +155,21 @@ class MultiplayerManager {
     }
   }
 
+  sendNextRoundReset() {
+    if (this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'next_round_reset'
+      });
+    }
+  }
+
   handleNetworkData(data) {
     const peerId = this.conn ? this.conn.peer : 'remote';
 
     if (data.type === 'transform') {
       if (!this.remotePlayers[peerId]) {
-        // Create remote dinosaur mesh
         const remoteMesh = ModelBuilder.createDinosaur(data.dinoType, true);
 
-        // Add a glowing Cyan Beacon Pillar above opponent's head so they are 100% visible!
         const beaconGeo = new THREE.CylinderGeometry(0.1, 0.4, 12, 8);
         const beaconMat = new THREE.MeshBasicMaterial({
           color: 0x00ffff,
@@ -200,14 +205,11 @@ class MultiplayerManager {
         remote.hp = data.hp;
         remote.maxHp = data.maxHp;
 
-        // If mesh was created before game started, add to scene now
         if (window.gameEngine && window.gameEngine.scene && window.gameEngine.isGaming && !remote.meshInScene) {
           window.gameEngine.scene.add(remote.mesh);
           remote.meshInScene = true;
-          window.gameEngine.logNotification(`⚔️ ĐỐI THỦ ONLINE CÓ CỘT SÁNG XANH DƯƠNG ĐÃ XUẤT HIỆN!`);
         }
 
-        // Update 1v1 PvP HUD
         if (window.gameEngine && window.gameEngine.gameMode === 'pvp1v1') {
           const p2HpFill = document.getElementById('p2-pvp-hp-fill');
           if (p2HpFill) {
@@ -223,6 +225,10 @@ class MultiplayerManager {
       if (window.gameEngine) {
         window.gameEngine.takePlayerDamage(data.amount, 'ĐỐI THỦ ONLINE');
         if (window.soundEngine) window.soundEngine.playAttack();
+      }
+    } else if (data.type === 'next_round_reset') {
+      if (window.gameEngine) {
+        window.gameEngine.respawnNextRound();
       }
     } else if (data.type === 'event') {
       if (data.event === 'attack') {

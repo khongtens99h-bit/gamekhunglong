@@ -220,13 +220,15 @@
     </div>
   </div>
 
-  <!-- Game Over Screen -->
+  <!-- Game Over Screen / Round End Overlay -->
   <div id="game-over-screen">
-    <h2>BẠN ĐÃ DIỆT VONG</h2>
-    <p style="color: #8fa397; font-size: 1.2rem;">Khủng long của bạn không thể tiếp tục sinh tồn trước đòn đánh hủy diệt.</p>
-    <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
-      <i class="fa-solid fa-rotate-right"></i> Tái Sinh
-    </button>
+    <h2 id="game-over-title">BẠN ĐÃ DIỆT VONG</h2>
+    <p id="game-over-desc" style="color: #8fa397; font-size: 1.2rem;">Khủng long của bạn không thể tiếp tục sinh tồn trước đòn đánh hủy diệt.</p>
+    <div id="game-over-buttons">
+      <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
+        <i class="fa-solid fa-rotate-right"></i> Tái Sinh
+      </button>
+    </div>
   </div>
 
   <!-- Game Scripts -->
