@@ -1,4 +1,4 @@
-/* js/ai.js - AI Dinosaur Behavior System Supporting Dynamic Difficulty Levels */
+/* js/ai.js - AI Dinosaur Behavior System Supporting Dynamic Difficulty Levels & Dog-Rex */
 
 class AIDinosaur {
   constructor(scene, type, spawnPos, difficulty = 'normal') {
@@ -12,7 +12,6 @@ class AIDinosaur {
     this.mesh.position.y = groundY + 0.1;
     this.scene.add(this.mesh);
 
-    // Difficulty multipliers
     let diffMult = 1.0;
     this.detectRadius = 35;
 
@@ -28,6 +27,8 @@ class AIDinosaur {
 
     if (type === 'trex') {
       this.hp = 200 * diffMult; this.speed = 0.08 * diffMult; this.damage = 30 * diffMult;
+    } else if (type === 'dogerex') {
+      this.hp = 150 * diffMult; this.speed = 0.11 * diffMult; this.damage = 25 * diffMult;
     } else if (type === 'stegosaurus') {
       this.hp = 160 * diffMult; this.speed = 0.055 * diffMult; this.damage = 24 * diffMult;
     } else if (type === 'triceratops') {
@@ -94,7 +95,11 @@ class AIDinosaur {
       if (distToPlayer < 4.8 && this.attackCooldown <= 0) {
         this.attackCooldown = 1.2;
         gameEngine.takePlayerDamage(Math.round(this.damage), this.type);
-        if (window.soundEngine) window.soundEngine.playAttack();
+        if (this.type === 'dogerex') {
+          if (window.soundEngine) window.soundEngine.playDogBark();
+        } else {
+          if (window.soundEngine) window.soundEngine.playAttack();
+        }
       }
     } else if (this.state === 'flee') {
       moveVector.subVectors(this.mesh.position, playerMesh.position).normalize();
@@ -159,7 +164,7 @@ class AIManager {
   }
 
   spawnInitialDinos(count = 18, difficulty = 'normal') {
-    const species = ['raptor', 'triceratops', 'trex', 'stegosaurus'];
+    const species = ['dogerex', 'raptor', 'triceratops', 'trex', 'stegosaurus'];
     for (let i = 0; i < count; i++) {
       const type = species[Math.floor(Math.random() * species.length)];
       const angle = Math.random() * Math.PI * 2;

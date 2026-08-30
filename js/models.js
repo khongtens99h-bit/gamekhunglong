@@ -21,6 +21,9 @@ class ModelBuilder {
     } else if (type === 'stegosaurus') {
       mainColor = isAI ? 0x16a085 : 0x2e4053;
       bellyColor = 0xa3e4d7;
+    } else if (type === 'dogerex') {
+      mainColor = 0xd4a359; // Golden yellow Doge fur
+      bellyColor = 0xfff8e7; // Cream belly
     }
 
     const mainMat = new THREE.MeshStandardMaterial({
@@ -34,12 +37,94 @@ class ModelBuilder {
       roughness: 0.7,
       flatShading: true
     });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
     const hornMat = new THREE.MeshStandardMaterial({ color: 0xeaeaea, roughness: 0.3 });
     const plateMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.4, flatShading: true });
     const toothMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const tongueMat = new THREE.MeshStandardMaterial({ color: 0xff6b81, roughness: 0.4 });
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.2 });
 
-    if (type === 'raptor') {
+    if (type === 'dogerex') {
+      // DOGE-REX MEME KING
+      const bodyGeo = new THREE.SphereGeometry(1.2, 10, 10);
+      bodyGeo.scale(1.1, 1.25, 1.8);
+      const body = new THREE.Mesh(bodyGeo, mainMat);
+      body.position.y = 1.9;
+      body.castShadow = true;
+      dinoGroup.add(body);
+
+      // Cream Doge Chest/Belly
+      const bellyGeo = new THREE.SphereGeometry(0.9, 8, 8);
+      bellyGeo.scale(0.9, 1.0, 1.4);
+      const belly = new THREE.Mesh(bellyGeo, bellyMat);
+      belly.position.set(0, 1.6, 0.3);
+      dinoGroup.add(belly);
+
+      // Dog Head & Neck
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 2.5, 1.2);
+
+      // Dog Skull
+      const skull = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 1.0), mainMat);
+      skull.position.set(0, 0.4, 0.6);
+      headGroup.add(skull);
+
+      // Dog Snout
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.5, 0.9), mainMat);
+      snout.position.set(0, 0.25, 1.35);
+      headGroup.add(snout);
+
+      // Black Dog Nose
+      const dogNose = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), noseMat);
+      dogNose.position.set(0, 0.45, 1.8);
+      headGroup.add(dogNose);
+
+      // Floppy Dog Ears
+      const earGeo = new THREE.ConeGeometry(0.2, 0.7, 4);
+      earGeo.rotateZ(Math.PI / 3);
+      const earL = new THREE.Mesh(earGeo, mainMat); earL.position.set(0.55, 0.5, 0.4);
+      const earR = new THREE.Mesh(earGeo, mainMat); earR.position.set(-0.55, 0.5, 0.4);
+      earR.rotation.z = -Math.PI / 3;
+      headGroup.add(earL, earR);
+
+      // Open Mouth & Tongue
+      const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.6), tongueMat);
+      tongue.position.set(0, 0.05, 1.4);
+      tongue.rotation.x = 0.15;
+      headGroup.add(tongue);
+
+      // Cute Dog Eyes
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); eyeL.position.set(0.44, 0.55, 0.9);
+      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); eyeR.position.set(-0.44, 0.55, 0.9);
+      headGroup.add(eyeL, eyeR);
+
+      // Tiny T-Rex Arms on Doge Chest
+      const armGeo = new THREE.CylinderGeometry(0.1, 0.06, 0.6, 6);
+      armGeo.rotateX(Math.PI / 4);
+      const armL = new THREE.Mesh(armGeo, mainMat); armL.position.set(0.6, 1.5, 1.1);
+      const armR = new THREE.Mesh(armGeo, mainMat); armR.position.set(-0.6, 1.5, 1.1);
+      dinoGroup.add(armL, armR);
+
+      dinoGroup.add(headGroup);
+      dinoGroup.headGroup = headGroup;
+
+      // Wagging Dog-Rex Tail
+      const tailGroup = new THREE.Group();
+      tailGroup.position.set(0, 1.8, -1.6);
+      const tailGeo = new THREE.ConeGeometry(0.55, 3.0, 8);
+      tailGeo.rotateX(-Math.PI / 2);
+      const tail = new THREE.Mesh(tailGeo, mainMat);
+      tail.position.set(0, 0.2, -1.4);
+      tailGroup.add(tail);
+      dinoGroup.add(tailGroup);
+
+      // Dino Legs
+      const legL = this.createLeg(mainMat, bellyMat); legL.position.set(0.85, 1.7, -0.3); legL.scale.set(1.3, 1.3, 1.3);
+      const legR = this.createLeg(mainMat, bellyMat); legR.position.set(-0.85, 1.7, -0.3); legR.scale.set(1.3, 1.3, 1.3);
+      dinoGroup.add(legL, legR);
+      dinoGroup.legLeft = legL; dinoGroup.legRight = legR;
+
+    } else if (type === 'raptor') {
       // Body
       const bodyGeo = new THREE.ConeGeometry(0.8, 2.2, 7);
       bodyGeo.rotateX(Math.PI / 2);

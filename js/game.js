@@ -1,4 +1,4 @@
-/* js/game.js - Engine With Robust Tab-Out/In Mouse Steering and Pointer Lock Recovery */
+/* js/game.js - Engine Supporting Playable Dog-Rex (Chó-Rex Meme King) Character */
 
 class GameEngine {
   constructor() {
@@ -185,7 +185,7 @@ class GameEngine {
       aiSpawnCount = 0;
       this.depletionRate = { hunger: 0, thirst: 0 };
       document.getElementById('pvp-arena-hud').style.display = 'flex';
-      document.getElementById('p1-dino-title').innerText = `BẠN (${dinoType.toUpperCase()})`;
+      document.getElementById('p1-dino-title').innerText = `BẠN (${dinoType === 'dogerex' ? 'CHÓ-REX 🐶' : dinoType.toUpperCase()})`;
       document.getElementById('bo-format-title').innerText = matchFmt.toUpperCase();
       this.update1v1ScoreUI();
     } else {
@@ -218,7 +218,7 @@ class GameEngine {
     this.playerMesh.rotation.y = this.dinoAngleY;
     this.scene.add(this.playerMesh);
 
-    const baseHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'triceratops' ? 130 : 100));
+    const baseHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'dogerex' ? 140 : (dinoType === 'triceratops' ? 130 : 100)));
     const maxHp = this.gameMode === 'pvp1v1' ? baseHp * 3 : baseHp;
 
     this.stats.hp = maxHp;
@@ -247,11 +247,14 @@ class GameEngine {
     }
 
     document.body.requestPointerLock();
+    if (this.selectedDinoType === 'dogerex') {
+      window.soundEngine.playDogBark();
+    }
     if (this.gameMode === 'pvp1v1') {
       this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 (${matchFmt.toUpperCase()}): Tăng 3x Máu (${maxHp} HP)!`);
     } else {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
-      this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
+      this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType === 'dogerex' ? 'CHÓ-REX MEME 🐶' : dinoType.toUpperCase()}`);
     }
   }
 
@@ -312,13 +315,17 @@ class GameEngine {
 
       if (this.isGaming) {
         let roarType = null;
-        if (e.code === 'Digit1') roarType = 'normal';
-        if (e.code === 'Digit2') roarType = 'apex';
-        if (e.code === 'Digit3') roarType = 'threat';
-        if (e.code === 'Digit4') roarType = 'friendly';
+        if (e.code === 'Digit1') roarType = this.selectedDinoType === 'dogerex' ? 'dogerex' : 'normal';
+        if (e.code === 'Digit2') roarType = this.selectedDinoType === 'dogerex' ? 'dogerex' : 'apex';
+        if (e.code === 'Digit3') roarType = this.selectedDinoType === 'dogerex' ? 'dogerex' : 'threat';
+        if (e.code === 'Digit4') roarType = this.selectedDinoType === 'dogerex' ? 'dogerex' : 'friendly';
 
         if (roarType) {
-          window.soundEngine.playRoar(roarType);
+          if (this.selectedDinoType === 'dogerex') {
+            window.soundEngine.playDogBark();
+          } else {
+            window.soundEngine.playRoar(roarType);
+          }
           if (window.multiplayerManager) window.multiplayerManager.sendEvent('roar', { roarType });
         }
       }
@@ -332,7 +339,6 @@ class GameEngine {
       this.keys[e.code] = false;
     });
 
-    // Clear stuck keys when tabbing out or switching windows
     window.addEventListener('blur', () => {
       this.keys = {};
     });
@@ -353,9 +359,8 @@ class GameEngine {
 
     window.addEventListener('mousemove', (e) => {
       if (!this.isGaming) return;
-      if (document.pointerLockElement !== document.body) return; // Only rotate when pointer locked!
+      if (document.pointerLockElement !== document.body) return;
 
-      // Filter out huge bogus mouse movement spikes when tabbing back into game window
       if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
 
       const sensitivity = 0.0035;
@@ -387,12 +392,17 @@ class GameEngine {
 
     this.normalAttackCooldown = 0.9;
     this.attackAnimTime = 0.3;
-    if (window.soundEngine) window.soundEngine.playAttack();
+
+    if (this.selectedDinoType === 'dogerex') {
+      window.soundEngine.playDogBark();
+    } else {
+      window.soundEngine.playAttack();
+    }
     if (window.multiplayerManager) window.multiplayerManager.sendEvent('attack');
 
     const playerPos = this.playerMesh.position;
     let hitCount = 0;
-    const baseDamage = this.selectedDinoType === 'trex' ? 50 : (this.selectedDinoType === 'stegosaurus' ? 40 : 35);
+    const baseDamage = this.selectedDinoType === 'trex' ? 50 : (this.selectedDinoType === 'stegosaurus' ? 40 : (this.selectedDinoType === 'dogerex' ? 42 : 35));
 
     // AI Damage
     this.aiManager.dinos.forEach(ai => {
@@ -427,7 +437,7 @@ class GameEngine {
     }
 
     if (hitCount === 0) {
-      this.logNotification(`Đòn cắn thường!`);
+      this.logNotification(this.selectedDinoType === 'dogerex' ? `🐶 CHÓ-REX CẮN GÂU GÂU!` : `Đòn cắn thường!`);
     }
   }
 
@@ -444,7 +454,12 @@ class GameEngine {
 
     this.stats.stamina -= 20;
     this.attackAnimTime = 0.6;
-    if (window.soundEngine) window.soundEngine.playSkill();
+
+    if (this.selectedDinoType === 'dogerex') {
+      window.soundEngine.playDogBark();
+    } else {
+      window.soundEngine.playSkill();
+    }
     if (window.multiplayerManager) window.multiplayerManager.sendEvent('skill');
 
     const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
@@ -454,6 +469,9 @@ class GameEngine {
     if (this.selectedDinoType === 'trex') {
       leapDist = 7.0; skillDamage = 100; this.skillCooldown = 4.5;
       if (window.soundEngine) window.soundEngine.playRoar('apex');
+    } else if (this.selectedDinoType === 'dogerex') {
+      leapDist = 10.0; skillDamage = 75; this.skillCooldown = 3.5;
+      window.soundEngine.playDogBark();
     } else if (this.selectedDinoType === 'stegosaurus') {
       leapDist = 3.0; skillDamage = 85; this.skillCooldown = 4.0;
     } else if (this.selectedDinoType === 'raptor') {
@@ -496,7 +514,7 @@ class GameEngine {
     }
 
     if (!hit) {
-      this.logNotification(`⚡ SKILL: Kích hoạt Kỹ năng Tuyệt kỹ!`);
+      this.logNotification(this.selectedDinoType === 'dogerex' ? `🐶 KỸ NĂNG: GÂU GÂU POUNCE HỦY DIỆT!` : `⚡ SKILL: Kích hoạt Kỹ năng Tuyệt kỹ!`);
     }
   }
 
@@ -538,7 +556,7 @@ class GameEngine {
       });
     }
 
-    const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex';
+    const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex' || this.selectedDinoType === 'dogerex';
     if (!actionTaken && isCarnivore) {
       this.meatCarcasses.forEach(m => {
         if (Math.hypot(playerPos.x - m.position.x, playerPos.z - m.position.z) < 6.0) {
@@ -584,7 +602,7 @@ class GameEngine {
     }
 
     // 1. Movement Logic
-    const baseSpeed = this.selectedDinoType === 'raptor' ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
+    const baseSpeed = (this.selectedDinoType === 'raptor' || this.selectedDinoType === 'dogerex') ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
     const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;
 
@@ -706,7 +724,7 @@ class GameEngine {
       });
     }
 
-    const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex';
+    const isCarnivore = this.selectedDinoType === 'raptor' || this.selectedDinoType === 'trex' || this.selectedDinoType === 'dogerex';
     if (!text && isCarnivore) {
       this.meatCarcasses.forEach(m => {
         if (Math.hypot(this.playerMesh.position.x - m.position.x, this.playerMesh.position.z - m.position.z) < 6.0) {

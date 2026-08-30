@@ -79,8 +79,26 @@
     </div>
 
     <div class="dino-select-cards">
+      <!-- Dog-Rex Meme Card -->
+      <div class="dino-card card-meme selected" onclick="selectDinoCard(this, 'dogerex')">
+        <div class="dino-icon" style="color: #f1c40f;"><i class="fa-solid fa-dog"></i></div>
+        <div class="dino-name" style="color: #f1c40f;">Chó-Rex</div>
+        <div class="dino-role role-meme">👑 Meme Legend</div>
+        <div class="dino-desc">Khủng long đầu Chó Ta huyền thoại! Skill [Chuột Phải]: Nhảy vồ Tiếng Gầm Gâu Gâu!</div>
+        <div class="stat-bars-mini">
+          <div class="stat-row">
+            <span>Sức Mạnh</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 88%; background: #f1c40f;"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Tốc Độ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 95%; background: #f1c40f;"></div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Raptor Card -->
-      <div class="dino-card selected" onclick="selectDinoCard(this, 'raptor')">
+      <div class="dino-card" onclick="selectDinoCard(this, 'raptor')">
         <div class="dino-icon"><i class="fa-solid fa-dragon"></i></div>
         <div class="dino-name">Raptor</div>
         <div class="dino-role role-carnivore">Ăn Thịt</div>
@@ -215,7 +233,7 @@
         <div><span class="key-badge">SHIFT</span> Chạy</div>
         <div><span class="key-badge">Q</span> Đánh hơi</div>
         <div><span class="key-badge">E</span> Ăn / Uống</div>
-        <div><span class="key-badge">1 - 4</span> Tiếng Gầm</div>
+        <div><span class="key-badge">1 - 4</span> Tiếng Gầm / Sủa Gâu Gâu</div>
       </div>
     </div>
   </div>
@@ -240,7 +258,7 @@
   <script src="js/game.js"></script>
 
   <script>
-    let chosenDinoType = 'raptor';
+    let chosenDinoType = 'dogerex';
     let chosenDifficulty = 'normal';
     let chosenGameMode = 'survival';
     let chosenMatchFormat = 'bo3';

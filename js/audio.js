@@ -1,4 +1,4 @@
-/* js/audio.js - Procedural Dinosaur & Environment Audio Synthesizer */
+/* js/audio.js - Procedural Dinosaur & Dog-Rex Audio Synthesizer */
 
 class SoundEngine {
   constructor() {
@@ -13,9 +13,44 @@ class SoundEngine {
     this.initialized = true;
   }
 
+  playDogBark() {
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    // Dog Bark Pitch Drop: 350Hz down to 100Hz in 0.15s
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(360, t);
+    osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, t);
+    filter.Q.setValueAtTime(3.0, t);
+
+    gain.gain.setValueAtTime(0.01, t);
+    gain.gain.linearRampToValueAtTime(0.8, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
   playRoar(type = 'normal') {
     this.init();
     if (!this.ctx) return;
+
+    if (type === 'dogerex' || type === 'bark') {
+      this.playDogBark();
+      return;
+    }
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
