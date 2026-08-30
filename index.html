@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dino Isle 3D - Khủng Long Sinh Tồn</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Scent Mode Atmosphere & Overlay -->
+  <div id="scent-overlay">
+    <div id="scent-title"><i class="fa-solid fa-wind"></i> CHẾ ĐỘ ĐÁNH HƠI (SCENT MODE)</div>
+  </div>
+
+  <!-- Main Menu / Dino Selection Screen -->
+  <div id="menu-screen">
+    <div class="title-container">
+      <h1>THE DINO ISLE</h1>
+      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D</p>
+    </div>
+
+    <div class="dino-select-cards">
+      <!-- Raptor Card -->
+      <div class="dino-card selected" onclick="selectDinoCard(this, 'raptor')">
+        <div class="dino-icon"><i class="fa-solid fa-dragon"></i></div>
+        <div class="dino-name">Raptor</div>
+        <div class="dino-role role-carnivore">Ăn Thịt (Carnivore)</div>
+        <div class="dino-desc">Khủng long săn mồi di chuyển linh hoạt. Kỹ năng [Chuột Phải]: Nhảy vồ Pounce gây sát thương cực lớn.</div>
+        <div class="stat-bars-mini">
+          <div class="stat-row">
+            <span>Sức Mạnh</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 85%; background: #e74c3c;"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Tốc Độ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 90%; background: #f1c40f;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Triceratops Card -->
+      <div class="dino-card" onclick="selectDinoCard(this, 'triceratops')">
+        <div class="dino-icon"><i class="fa-solid fa-shield-cat"></i></div>
+        <div class="dino-name">Triceratops</div>
+        <div class="dino-role role-herbivore">Ăn Cỏ (Herbivore)</div>
+        <div class="dino-desc">Khủng long 3 sừng phòng thủ mạnh mẽ. Kỹ năng [Chuột Phải]: Tông sừng Horn Charge đẩy lùi kẻ địch.</div>
+        <div class="stat-bars-mini">
+          <div class="stat-row">
+            <span>Máu & Thủ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 95%; background: #2ecc71;"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Tốc Độ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 60%; background: #f1c40f;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="onStartGameClicked()">Bắt Đầu Sinh Tồn <i class="fa-solid fa-play"></i></button>
+  </div>
+
+  <!-- In-Game HUD -->
+  <div id="hud-screen" style="display: none;">
+    <div class="hud-top">
+      <!-- Status Panel -->
+      <div class="status-panel">
+        <div class="hud-stat-group">
+          <div class="hud-stat-header"><span>Máu (Health)</span></div>
+          <div class="hud-stat-bar"><div id="hp-fill" class="hud-stat-fill"></div></div>
+        </div>
+
+        <div class="hud-stat-group">
+          <div class="hud-stat-header"><span>Thể Lực (Stamina)</span></div>
+          <div class="hud-stat-bar"><div id="stamina-fill" class="hud-stat-fill"></div></div>
+        </div>
+
+        <div class="hud-stat-group">
+          <div class="hud-stat-header"><span>Độ Đói (Hunger)</span></div>
+          <div class="hud-stat-bar"><div id="hunger-fill" class="hud-stat-fill"></div></div>
+        </div>
+
+        <div class="hud-stat-group">
+          <div class="hud-stat-header"><span>Độ Khát (Thirst)</span></div>
+          <div class="hud-stat-bar"><div id="thirst-fill" class="hud-stat-fill"></div></div>
+        </div>
+
+        <div class="hud-stat-group">
+          <div class="hud-stat-header">
+            <span>Tăng Trưởng (Growth)</span>
+            <span id="growth-stage-text">Juvenile</span>
+          </div>
+          <div class="hud-stat-bar"><div id="growth-fill" class="hud-stat-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- Top Right Panel (Time & Minimap) -->
+      <div class="top-right-panel">
+        <div class="time-card">
+          <i class="fa-solid fa-sun" style="color: #f1c40f;"></i> ISLE SURVIVAL
+        </div>
+        <div id="minimap-container">
+          <canvas id="minimap-canvas" width="130" height="130"></canvas>
+        </div>
+        <div id="notification-log"></div>
+      </div>
+    </div>
+
+    <!-- Center Interaction Prompt -->
+    <div id="action-prompt">[E] Uống Nước Clean Water</div>
+
+    <!-- HUD Bottom Guides -->
+    <div class="hud-bottom">
+      <div class="controls-guide">
+        <div><span class="key-badge">RÊ CHUỘT</span> Quay Hướng</div>
+        <div><span class="key-badge">ALT</span> Xoay Free Camera</div>
+        <div><span class="key-badge">CHUỘT TRÁI</span> Đánh Thường</div>
+        <div><span class="key-badge">CHUỘT PHẢI</span> Kỹ Năng</div>
+        <div><span class="key-badge">W A S D</span> Di chuyển</div>
+        <div><span class="key-badge">SHIFT</span> Chạy</div>
+        <div><span class="key-badge">Q</span> Đánh hơi</div>
+        <div><span class="key-badge">E</span> Ăn / Uống</div>
+        <div><span class="key-badge">1 - 4</span> Tiếng Gầm</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen">
+    <h2>BẠN ĐÃ DIỆT VONG</h2>
+    <p style="color: #8fa397; font-size: 1.2rem;">Khủng long của bạn không thể tiếp tục sinh tồn trước bầy khủng long săn mồi.</p>
+    <button class="btn-start" onclick="location.reload()" style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: #fff;">
+      <i class="fa-solid fa-rotate-right"></i> Tái Sinh
+    </button>
+  </div>
+
+  <!-- Game Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/models.js"></script>
+  <script src="js/scent.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/game.js"></script>
+
+  <script>
+    let chosenDinoType = 'raptor';
+
+    function selectDinoCard(element, dinoType) {
+      document.querySelectorAll('.dino-card').forEach(card => card.classList.remove('selected'));
+      element.classList.add('selected');
+      chosenDinoType = dinoType;
+    }
+
+    function onStartGameClicked() {
+      if (!window.gameEngine) {
+        window.gameEngine = new GameEngine();
+      }
+      window.gameEngine.startGame(chosenDinoType);
+    }
+  </script>
+</body>
+</html>
