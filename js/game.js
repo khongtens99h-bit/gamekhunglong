@@ -1,4 +1,4 @@
-/* js/game.js - Engine Ensuring Both Players Get 100% Full Health On Next Round */
+/* js/game.js - Engine With Guaranteed Debounced Round Resets and Zero Auto-Healing Loops */
 
 class GameEngine {
   constructor() {
@@ -10,6 +10,8 @@ class GameEngine {
 
     this.p1Score = 0;
     this.p2Score = 0;
+
+    this.isResettingRound = false; // Debounce guard for round resets
 
     this.stats = {
       hp: 100,
@@ -238,7 +240,11 @@ class GameEngine {
     }
 
     this.clock = new THREE.Clock();
-    this.isGaming = true;
+
+    if (!this.isGaming) {
+      this.isGaming = true;
+      this.animate();
+    }
 
     document.body.requestPointerLock();
     if (this.gameMode === 'pvp1v1') {
@@ -247,11 +253,14 @@ class GameEngine {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
       this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
     }
-    this.animate();
   }
 
   respawnNextRound(sendNetwork = true) {
-    // Both players get 100% FULL HEALTH restored for the new round!
+    if (this.isResettingRound) return; // Prevent double/continuous execution!
+    this.isResettingRound = true;
+    setTimeout(() => { this.isResettingRound = false; }, 1000);
+
+    const wasGaming = this.isGaming;
     this.stats.hp = this.stats.maxHp;
     this.stats.stamina = 100;
     this.stats.hunger = 100;
@@ -266,7 +275,6 @@ class GameEngine {
     this.cameraAngleY = this.dinoAngleY;
     this.playerMesh.rotation.y = this.dinoAngleY;
 
-    // Reset HUD health bars to 100%
     const p1HpFill = document.getElementById('p1-pvp-hp-fill');
     if (p1HpFill) p1HpFill.style.width = '100%';
     const p2HpFill = document.getElementById('p2-pvp-hp-fill');
@@ -275,13 +283,16 @@ class GameEngine {
     document.getElementById('game-over-screen').classList.remove('active');
     this.logNotification(`🔥 CẢ 2 ĐÃ HỒI 100% MÁU! HIỆP ĐẤU MỚI BẮT ĐẦU!`);
 
+    this.isGaming = true;
+    document.body.requestPointerLock();
+
+    if (!wasGaming) {
+      this.animate();
+    }
+
     if (sendNetwork && window.multiplayerManager) {
       window.multiplayerManager.sendNextRoundReset();
     }
-
-    this.isGaming = true;
-    document.body.requestPointerLock();
-    this.animate();
   }
 
   update1v1ScoreUI() {
@@ -557,7 +568,7 @@ class GameEngine {
       this.playerMesh.rotation.y = this.dinoAngleY;
     }
 
-    // 1. Movement Logic (A/D Inverted per user demand)
+    // 1. Movement Logic
     const baseSpeed = this.selectedDinoType === 'raptor' ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
     const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;

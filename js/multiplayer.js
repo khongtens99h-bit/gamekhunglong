@@ -228,7 +228,8 @@ class MultiplayerManager {
       }
     } else if (data.type === 'next_round_reset') {
       if (window.gameEngine) {
-        window.gameEngine.respawnNextRound();
+        // PASS false SO IT DOES NOT REFLECT BACK TO OTHER PLAYER AND CAUSE INFINITE NETWORK LOOP!
+        window.gameEngine.respawnNextRound(false);
       }
     } else if (data.type === 'event') {
       if (data.event === 'attack') {
