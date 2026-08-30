@@ -1,4 +1,4 @@
-/* js/game.js - Engine Supporting Exact Ultra-Limited Solo Ammo (AK: 3, Shotgun: 1, Plasma: 2) & Cursed Traps */
+/* js/game.js - Engine Supporting Mobile Touch Controls, Virtual Joystick, Swipe Camera & Ultra-Limited Solo Ammo */
 
 class GameEngine {
   constructor() {
@@ -16,9 +16,14 @@ class GameEngine {
     this.currentGun = null;
     this.equippedGunMesh = null;
 
-    // Debuff timers (Cursed Airdrops)
+    // Debuff timers
     this.freezeTimer = 0;
     this.disarmTimer = 0;
+
+    // Mobile Detection & Touch Controls
+    this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 768;
+    this.touchInputVector = { x: 0, z: 0 };
+    this.isTouchSprinting = false;
 
     this.stats = {
       hp: 100,
@@ -57,6 +62,7 @@ class GameEngine {
     this.initThree();
     this.initWorld();
     this.initInput();
+    this.initTouchInput();
   }
 
   getTerrainHeight(x, z) {
@@ -183,6 +189,145 @@ class GameEngine {
     this.aiManager = new AIManager(this.scene);
   }
 
+  initTouchInput() {
+    const joystickBase = document.getElementById('joystick-base');
+    const joystickStick = document.getElementById('joystick-stick');
+    const cameraZone = document.getElementById('mobile-camera-zone');
+
+    if (!joystickBase || !cameraZone) return;
+
+    let joystickActive = false;
+    let joystickTouchId = null;
+    let joystickCenterX = 0;
+    let joystickCenterY = 0;
+
+    // 1. Virtual Touch Joystick
+    const startJoystick = (e) => {
+      const touch = e.changedTouches[0];
+      joystickActive = true;
+      joystickTouchId = touch.identifier;
+      const rect = joystickBase.getBoundingClientRect();
+      joystickCenterX = rect.left + rect.width / 2;
+      joystickCenterY = rect.top + rect.height / 2;
+      updateJoystick(touch);
+    };
+
+    const moveJoystick = (e) => {
+      if (!joystickActive) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) {
+          updateJoystick(e.changedTouches[i]);
+          break;
+        }
+      }
+    };
+
+    const endJoystick = (e) => {
+      if (!joystickActive) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) {
+          joystickActive = false;
+          joystickTouchId = null;
+          this.touchInputVector = { x: 0, z: 0 };
+          joystickStick.style.transform = `translate(-50%, -50%)`;
+          break;
+        }
+      }
+    };
+
+    const updateJoystick = (touch) => {
+      const deltaX = touch.clientX - joystickCenterX;
+      const deltaY = touch.clientY - joystickCenterY;
+      const maxRadius = 45;
+      const dist = Math.hypot(deltaX, deltaY);
+
+      const angle = Math.atan2(deltaY, deltaX);
+      const moveRadius = Math.min(dist, maxRadius);
+
+      const stickX = Math.cos(angle) * moveRadius;
+      const stickY = Math.sin(angle) * moveRadius;
+      joystickStick.style.transform = `translate(calc(-50% + ${stickX}px), calc(-50% + ${stickY}px))`;
+
+      // Normalize input vector (-1 to +1)
+      this.touchInputVector.x = -(deltaX / maxRadius); // Inverted A/D strafe matching PC logic
+      this.touchInputVector.z = -(deltaY / maxRadius);
+    };
+
+    joystickBase.addEventListener('touchstart', startJoystick, { passive: false });
+    window.addEventListener('touchmove', moveJoystick, { passive: false });
+    window.addEventListener('touchend', endJoystick, { passive: false });
+    window.addEventListener('touchcancel', endJoystick, { passive: false });
+
+    // 2. Right-Half Touch Camera Swipe Zone
+    let cameraTouchId = null;
+    let lastCamX = 0;
+    let lastCamY = 0;
+
+    cameraZone.addEventListener('touchstart', (e) => {
+      const touch = e.changedTouches[0];
+      cameraTouchId = touch.identifier;
+      lastCamX = touch.clientX;
+      lastCamY = touch.clientY;
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (cameraTouchId === null) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === cameraTouchId) {
+          const dx = touch.clientX - lastCamX;
+          const dy = touch.clientY - lastCamY;
+          lastCamX = touch.clientX;
+          lastCamY = touch.clientY;
+
+          const sensitivity = 0.006;
+          this.cameraAngleY -= dx * sensitivity;
+          this.cameraAngleX = Math.max(0.08, Math.min(1.1, this.cameraAngleX + dy * sensitivity));
+          this.dinoAngleY = this.cameraAngleY;
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endCamera = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === cameraTouchId) {
+          cameraTouchId = null;
+          break;
+        }
+      }
+    };
+    window.addEventListener('touchend', endCamera, { passive: false });
+    window.addEventListener('touchcancel', endCamera, { passive: false });
+
+    // 3. Action Touch Buttons
+    const btnBite = document.getElementById('btn-m-bite');
+    const btnSkill = document.getElementById('btn-m-skill');
+    const btnFire = document.getElementById('btn-m-fire');
+    const btnInteract = document.getElementById('btn-m-interact');
+    const btnSprint = document.getElementById('btn-m-sprint');
+    const btnRoar = document.getElementById('btn-m-roar');
+
+    if (btnBite) btnBite.addEventListener('touchstart', (e) => { e.preventDefault(); this.performLeftClickAttack(); });
+    if (btnSkill) btnSkill.addEventListener('touchstart', (e) => { e.preventDefault(); this.performRightClickSkill(); });
+    if (btnFire) btnFire.addEventListener('touchstart', (e) => { e.preventDefault(); this.fireGunWeapon(); });
+    if (btnInteract) btnInteract.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleEatDrinkInteraction(); });
+    if (btnRoar) btnRoar.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (this.selectedDinoType === 'dogerex') window.soundEngine.playDogBark();
+      else window.soundEngine.playRoar('apex');
+    });
+
+    if (btnSprint) {
+      btnSprint.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.isTouchSprinting = !this.isTouchSprinting;
+        btnSprint.style.background = this.isTouchSprinting ? 'linear-gradient(90deg, #e67e22, #d35400)' : 'rgba(52, 152, 219, 0.8)';
+        this.logNotification(this.isTouchSprinting ? '⚡ ĐÃ BẬT CHẠY NHANH' : '🚶 ĐÃ TẮT CHẠY NHANH');
+      });
+    }
+  }
+
   spawnAirdrop() {
     const isTrap = Math.random() < 0.3;
     let lootType = 'ak47';
@@ -285,6 +430,12 @@ class GameEngine {
     document.getElementById('hud-screen').style.display = 'flex';
     document.getElementById('game-over-screen').classList.remove('active');
 
+    // Show Mobile Touch Controls overlay if on mobile or small screen
+    const mobileOverlay = document.getElementById('mobile-controls-overlay');
+    if (mobileOverlay) {
+      mobileOverlay.style.display = this.isMobile ? 'block' : 'none';
+    }
+
     this.aiManager.spawnInitialDinos(aiSpawnCount, this.difficulty);
 
     if (window.multiplayerManager) {
@@ -298,7 +449,8 @@ class GameEngine {
       this.animate();
     }
 
-    document.body.requestPointerLock();
+    if (!this.isMobile) document.body.requestPointerLock();
+
     if (this.selectedDinoType === 'dogerex') {
       window.soundEngine.playDogBark();
     }
@@ -341,7 +493,7 @@ class GameEngine {
     this.logNotification(`🔥 CẢ 2 ĐÃ HỒI 100% MÁU! HIỆP ĐẤU MỚI BẮT ĐẦU!`);
 
     this.isGaming = true;
-    document.body.requestPointerLock();
+    if (!this.isMobile) document.body.requestPointerLock();
 
     if (!wasGaming) {
       this.animate();
@@ -410,14 +562,14 @@ class GameEngine {
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
     this.container.addEventListener('click', () => {
-      if (this.isGaming && document.pointerLockElement !== document.body) {
+      if (this.isGaming && !this.isMobile && document.pointerLockElement !== document.body) {
         document.body.requestPointerLock();
       }
     });
 
     window.addEventListener('mousemove', (e) => {
       if (!this.isGaming) return;
-      if (document.pointerLockElement !== document.body) return;
+      if (!this.isMobile && document.pointerLockElement !== document.body) return;
 
       if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
 
@@ -501,13 +653,16 @@ class GameEngine {
     const card = document.getElementById('weapon-status-card');
     const nameEl = document.getElementById('weapon-name-text');
     const ammoEl = document.getElementById('weapon-ammo-text');
+    const btnMFire = document.getElementById('btn-m-fire');
 
     if (this.currentGun && this.currentGun.ammo > 0) {
-      card.style.display = 'block';
-      nameEl.innerText = `🔫 ${this.currentGun.name}`;
-      ammoEl.innerText = `${this.currentGun.ammo} / ${this.currentGun.maxAmmo} ĐẠN`;
+      if (card) card.style.display = 'block';
+      if (btnMFire) btnMFire.style.display = 'flex';
+      if (nameEl) nameEl.innerText = `🔫 ${this.currentGun.name}`;
+      if (ammoEl) ammoEl.innerText = `${this.currentGun.ammo} / ${this.currentGun.maxAmmo} ĐẠN`;
     } else {
-      card.style.display = 'none';
+      if (card) card.style.display = 'none';
+      if (btnMFire) btnMFire.style.display = 'none';
     }
   }
 
@@ -674,7 +829,7 @@ class GameEngine {
     const playerPos = this.playerMesh.position;
     let actionTaken = false;
 
-    // Check Loot Airdrops (Exact Ultra-Limited Solo Ammo: AK 3, Shotgun 1, Plasma 2!)
+    // Check Loot Airdrops
     for (let i = 0; i < this.airdrops.length; i++) {
       const drop = this.airdrops[i];
       const dist2D = Math.hypot(playerPos.x - drop.position.x, playerPos.z - drop.position.z);
@@ -691,7 +846,7 @@ class GameEngine {
         } else if (lType === 'mine') {
           this.takePlayerDamage(35, 'BẪY MÌN NỔ AIRDROP');
           this.logNotification(`💥 BẪY MÌN NỔ AIRDROP! Bị nổ (-35 HP)!`);
-        } else { // Guns with EXACT ULTRA-LIMITED SOLO AMMO!
+        } else { // Guns
           let name = 'AK-47';
           let ammo = this.gameMode === 'pvp1v1' ? 3 : 10;
           let dmg = 25;
@@ -715,7 +870,7 @@ class GameEngine {
           this.playerMesh.add(this.equippedGunMesh);
 
           this.updateGunHUD();
-          this.logNotification(`🪂 ĐÃ MỞ AIRDROP! NHẶT SÚNG ${name} (${ammo} VIÊN)! Nhấn [F] hoặc [Chuột Trái] để BẮN!`);
+          this.logNotification(`🪂 ĐÃ MỞ AIRDROP! NHẶT SÚNG ${name} (${ammo} VIÊN)! Nhấn [F] hoặc BẮN để xả đạn!`);
         }
 
         this.scene.remove(drop);
@@ -869,9 +1024,10 @@ class GameEngine {
       this.playerMesh.rotation.y = this.dinoAngleY;
     }
 
-    // 1. Movement Logic (Blocked if Frozen!)
+    // 1. Movement Logic (Keyboard + Mobile Virtual Touch Joystick)
     const baseSpeed = (this.selectedDinoType === 'raptor' || this.selectedDinoType === 'dogerex') ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
-    const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
+    const isSprinting = (this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.isTouchSprinting) && this.stats.stamina > 5;
+    const moveSpeed = isSprinting ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;
 
     if (this.freezeTimer <= 0) {
@@ -880,6 +1036,12 @@ class GameEngine {
       if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
       if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1;
       if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1;
+
+      // Add Touch Joystick Input Vector if active
+      if (Math.hypot(this.touchInputVector.x, this.touchInputVector.z) > 0.1) {
+        inputVector.x += this.touchInputVector.x;
+        inputVector.z += this.touchInputVector.z;
+      }
 
       if (inputVector.lengthSq() > 0) {
         inputVector.normalize();
@@ -1117,7 +1279,7 @@ class GameEngine {
 
   gameOver() {
     this.isGaming = false;
-    document.exitPointerLock();
+    if (!this.isMobile) document.exitPointerLock();
 
     const gameOverOverlay = document.getElementById('game-over-screen');
     const title = document.getElementById('game-over-title');

@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dino Isle 3D - Khủng Long Sinh Tồn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dino Isle 3D - Khủng Long Sinh Tồn (Phiên Bản Mobile & PC)</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -43,39 +43,39 @@
   <div id="menu-screen">
     <div class="title-container">
       <h1>THE DINO ISLE</h1>
-      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D MULTIPLAYER & SÚNG NỐI</p>
+      <p>KHỦNG LONG SINH TỒN 3D - MOBILE & PC EDITION</p>
     </div>
 
     <!-- Game Mode Selection Panel -->
     <div class="mode-panel">
-      <button class="mode-btn selected" data-mode="survival" onclick="selectGameMode(this, 'survival')">🏝️ Sinh Tồn Khảo Sát (Island Survival)</button>
-      <button class="mode-btn" data-mode="pvp1v1" onclick="selectGameMode(this, 'pvp1v1')">⚔️ Đấu Trường 1v1 Solo (Online PvP Arena)</button>
+      <button class="mode-btn selected" data-mode="survival" onclick="selectGameMode(this, 'survival')">🏝️ Sinh Tồn Khảo Sát</button>
+      <button class="mode-btn" data-mode="pvp1v1" onclick="selectGameMode(this, 'pvp1v1')">⚔️ Đấu Trường 1v1 Solo</button>
     </div>
 
     <!-- BO Match Format Panel -->
     <div class="bo-panel">
       <span class="bo-title"><i class="fa-solid fa-trophy"></i> Thể Thức Solo:</span>
-      <button class="bo-btn" data-bo="bo1" onclick="selectMatchFormat(this, 'bo1')">BO1 (1 Trận)</button>
-      <button class="bo-btn selected" data-bo="bo3" onclick="selectMatchFormat(this, 'bo3')">BO3 (Thắng 2/3)</button>
-      <button class="bo-btn" data-bo="bo5" onclick="selectMatchFormat(this, 'bo5')">BO5 (Thắng 3/5)</button>
+      <button class="bo-btn" data-bo="bo1" onclick="selectMatchFormat(this, 'bo1')">BO1</button>
+      <button class="bo-btn selected" data-bo="bo3" onclick="selectMatchFormat(this, 'bo3')">BO3</button>
+      <button class="bo-btn" data-bo="bo5" onclick="selectMatchFormat(this, 'bo5')">BO5</button>
     </div>
 
     <!-- Multiplayer Online Panel -->
     <div class="multiplayer-box">
-      <button class="mp-btn" onclick="hostOnlineRoom()"><i class="fa-solid fa-tower-broadcast"></i> Tạo Phòng Online</button>
-      <div id="room-code-display" style="display: none;">MÃ PHÒNG: <span id="my-room-code" style="color: #f1c40f;"></span></div>
+      <button class="mp-btn" onclick="hostOnlineRoom()"><i class="fa-solid fa-tower-broadcast"></i> Tạo Phòng</button>
+      <div id="room-code-display" style="display: none;">MÃ: <span id="my-room-code" style="color: #f1c40f;"></span></div>
       <div style="color: #8fa397;">HOẶC</div>
       <input type="text" id="join-code-input" class="mp-input" placeholder="MÃ PHÒNG" maxlength="6">
-      <button class="mp-btn" style="background: linear-gradient(90deg, #3498db, #2980b9);" onclick="joinOnlineRoom()"><i class="fa-solid fa-right-to-bracket"></i> Tham Gia</button>
+      <button class="mp-btn" style="background: linear-gradient(90deg, #3498db, #2980b9);" onclick="joinOnlineRoom()"><i class="fa-solid fa-right-to-bracket"></i> Vào</button>
     </div>
 
     <!-- Difficulty Selection Bar -->
     <div class="difficulty-panel">
       <span class="diff-title"><i class="fa-solid fa-skull"></i> Độ Khó:</span>
-      <button class="diff-btn" data-diff="easy" onclick="selectDifficulty(this, 'easy')">🟢 Dễ (Easy)</button>
-      <button class="diff-btn selected" data-diff="normal" onclick="selectDifficulty(this, 'normal')">🟡 Vừa (Normal)</button>
-      <button class="diff-btn" data-diff="hard" onclick="selectDifficulty(this, 'hard')">🔴 Khó (Hard)</button>
-      <button class="diff-btn" data-diff="nightmare" onclick="selectDifficulty(this, 'nightmare')">☠️ Bá Chủ (Apex)</button>
+      <button class="diff-btn" data-diff="easy" onclick="selectDifficulty(this, 'easy')">🟢 Dễ</button>
+      <button class="diff-btn selected" data-diff="normal" onclick="selectDifficulty(this, 'normal')">🟡 Vừa</button>
+      <button class="diff-btn" data-diff="hard" onclick="selectDifficulty(this, 'hard')">🔴 Khó</button>
+      <button class="diff-btn" data-diff="nightmare" onclick="selectDifficulty(this, 'nightmare')">☠️ Bá Chủ</button>
     </div>
 
     <div class="dino-select-cards">
@@ -84,7 +84,7 @@
         <div class="dino-icon" style="color: #f1c40f;"><i class="fa-solid fa-dog"></i></div>
         <div class="dino-name" style="color: #f1c40f;">Chó-Rex</div>
         <div class="dino-role role-meme">👑 Meme Legend</div>
-        <div class="dino-desc">Khủng long đầu Chó Ta huyền thoại! Skill [Chuột Phải]: Nhảy vồ Tiếng Gầm Gâu Gâu!</div>
+        <div class="dino-desc">Khủng long đầu Chó Ta huyền thoại! Skill: Nhảy vồ Tiếng Gầm Gâu Gâu!</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Sức Mạnh</span>
@@ -102,7 +102,7 @@
         <div class="dino-icon"><i class="fa-solid fa-dragon"></i></div>
         <div class="dino-name">Raptor</div>
         <div class="dino-role role-carnivore">Ăn Thịt</div>
-        <div class="dino-desc">Khủng long săn mồi di chuyển linh hoạt. Skill [Chuột Phải]: Nhảy vồ Pounce.</div>
+        <div class="dino-desc">Khủng long săn mồi di chuyển linh hoạt. Skill: Nhảy vồ Pounce.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Sức Mạnh</span>
@@ -120,7 +120,7 @@
         <div class="dino-icon"><i class="fa-solid fa-skull-crossbones"></i></div>
         <div class="dino-name">T-Rex</div>
         <div class="dino-role role-carnivore">Bá Chủ Ăn Thịt</div>
-        <div class="dino-desc">Khủng long bạo chúa sức mạnh hủy diệt. Skill [Chuột Phải]: Cắn Xé Apex Crunch.</div>
+        <div class="dino-desc">Khủng long bạo chúa sức mạnh hủy diệt. Skill: Cắn Xé Apex Crunch.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Sức Mạnh</span>
@@ -138,7 +138,7 @@
         <div class="dino-icon"><i class="fa-solid fa-shield-cat"></i></div>
         <div class="dino-name">Triceratops</div>
         <div class="dino-role role-herbivore">Ăn Cỏ (Tank)</div>
-        <div class="dino-desc">Khủng long 3 sừng phòng thủ mạnh mẽ. Skill [Chuột Phải]: Tông sừng Horn Charge.</div>
+        <div class="dino-desc">Khủng long 3 sừng phòng thủ mạnh mẽ. Skill: Tông sừng Horn Charge.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Máu & Thủ</span>
@@ -156,7 +156,7 @@
         <div class="dino-icon"><i class="fa-solid fa-gem"></i></div>
         <div class="dino-name">Stegosaurus</div>
         <div class="dino-role role-herbivore">Ăn Cỏ (Giáp Mài)</div>
-        <div class="dino-desc">Khủng long vây kiếm đuôi gai. Skill [Chuột Phải]: Quật Đuôi Gai Thagomizer Strike.</div>
+        <div class="dino-desc">Khủng long vây kiếm đuôi gai. Skill: Quật Đuôi Gai Strike.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Máu & Thủ</span>
@@ -192,7 +192,7 @@
         <div id="weapon-status-card" class="weapon-card" style="display: none;">
           <div class="weapon-header">
             <span id="weapon-name-text">🔫 AK-47</span>
-            <span id="weapon-ammo-text" style="color: #f1c40f; font-weight: 800;">30 / 30 ĐẠN</span>
+            <span id="weapon-ammo-text" style="color: #f1c40f; font-weight: 800;">3 / 3 ĐẠN</span>
           </div>
         </div>
 
@@ -230,18 +230,40 @@
     <!-- Center Interaction Prompt -->
     <div id="action-prompt">[E] Uống Nước Clean Water</div>
 
-    <!-- HUD Bottom Guides -->
-    <div class="hud-bottom">
+    <!-- HUD Bottom Guides (PC Only) -->
+    <div class="hud-bottom desktop-only">
       <div class="controls-guide">
-        <div><span class="key-badge">E</span> Nhặt Súng / Ăn / Uống</div>
+        <div><span class="key-badge">E</span> Nhặt Hòm Airdrop / Ăn / Uống</div>
         <div><span class="key-badge">F</span> BẮN SÚNG 🔫</div>
         <div><span class="key-badge">CHUỘT TRÁI</span> Cắn / Bắn Súng</div>
         <div><span class="key-badge">CHUỘT PHẢI</span> Kỹ Năng</div>
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
         <div><span class="key-badge">SHIFT</span> Chạy</div>
         <div><span class="key-badge">Q</span> Đánh hơi</div>
-        <div><span class="key-badge">1 - 4</span> Tiếng Gầm / Sủa</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ON-SCREEN MOBILE TOUCH CONTROLS OVERLAY -->
+  <div id="mobile-controls-overlay" style="display: none;">
+    <!-- Touch Camera Swipe Zone (Right Screen Half) -->
+    <div id="mobile-camera-zone"></div>
+
+    <!-- Virtual Touch Joystick (Bottom Left) -->
+    <div id="joystick-container">
+      <div id="joystick-base">
+        <div id="joystick-stick"></div>
+      </div>
+    </div>
+
+    <!-- Mobile Action Touch Buttons (Bottom Right) -->
+    <div id="mobile-buttons-container">
+      <button class="m-btn btn-bite" id="btn-m-bite"><i class="fa-solid fa-teeth"></i> CẮN</button>
+      <button class="m-btn btn-skill" id="btn-m-skill"><i class="fa-solid fa-bolt"></i> SKILL</button>
+      <button class="m-btn btn-fire" id="btn-m-fire" style="display: none;"><i class="fa-solid fa-gun"></i> BẮN 🔫</button>
+      <button class="m-btn btn-interact" id="btn-m-interact"><i class="fa-solid fa-hand"></i> [E] LOOT</button>
+      <button class="m-btn btn-sprint" id="btn-m-sprint"><i class="fa-solid fa-person-running"></i> CHẠY</button>
+      <button class="m-btn btn-roar" id="btn-m-roar"><i class="fa-solid fa-volume-high"></i> SỦA</button>
     </div>
   </div>
 
