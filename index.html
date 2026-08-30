@@ -26,7 +26,13 @@
       <div class="pvp-player-name" id="p1-dino-title" style="color: #2ecc71;">BẠN (PLAYER 1)</div>
       <div class="pvp-hp-bar"><div id="p1-pvp-hp-fill" class="pvp-hp-fill" style="background: #2ecc71;"></div></div>
     </div>
-    <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: #e74c3c;">VS</div>
+
+    <!-- BO Score Board -->
+    <div class="pvp-score-box">
+      <div class="pvp-score-title" id="bo-format-title">BO3 ARENA</div>
+      <div class="pvp-score-numbers" id="pvp-score-numbers">0 - 0</div>
+    </div>
+
     <div class="pvp-player-card" style="align-items: flex-end;">
       <div class="pvp-player-name" id="p2-dino-title" style="color: #ff6b6b;">ĐỐI THỦ (PLAYER 2)</div>
       <div class="pvp-hp-bar"><div id="p2-pvp-hp-fill" class="pvp-hp-fill" style="background: #e74c3c;"></div></div>
@@ -44,6 +50,14 @@
     <div class="mode-panel">
       <button class="mode-btn selected" data-mode="survival" onclick="selectGameMode(this, 'survival')">🏝️ Sinh Tồn Khảo Sát (Island Survival)</button>
       <button class="mode-btn" data-mode="pvp1v1" onclick="selectGameMode(this, 'pvp1v1')">⚔️ Đấu Trường 1v1 Solo (Online PvP Arena)</button>
+    </div>
+
+    <!-- BO Match Format Panel -->
+    <div class="bo-panel">
+      <span class="bo-title"><i class="fa-solid fa-trophy"></i> Thể Thức Solo:</span>
+      <button class="bo-btn" data-bo="bo1" onclick="selectMatchFormat(this, 'bo1')">BO1 (1 Trận)</button>
+      <button class="bo-btn selected" data-bo="bo3" onclick="selectMatchFormat(this, 'bo3')">BO3 (Thắng 2/3)</button>
+      <button class="bo-btn" data-bo="bo5" onclick="selectMatchFormat(this, 'bo5')">BO5 (Thắng 3/5)</button>
     </div>
 
     <!-- Multiplayer Online Panel -->
@@ -195,7 +209,7 @@
       <div class="controls-guide">
         <div><span class="key-badge">RÊ CHUỘT</span> Quay Hướng</div>
         <div><span class="key-badge">ALT</span> Free Camera</div>
-        <div><span class="key-badge">CHUỘT TRÁI</span> Đánh Thường</div>
+        <div><span class="key-badge">CHUỘT TRÁI</span> Đánh Thường (0.9s CD)</div>
         <div><span class="key-badge">CHUỘT PHẢI</span> Kỹ Năng</div>
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
         <div><span class="key-badge">SHIFT</span> Chạy</div>
@@ -227,6 +241,7 @@
     let chosenDinoType = 'raptor';
     let chosenDifficulty = 'normal';
     let chosenGameMode = 'survival';
+    let chosenMatchFormat = 'bo3';
 
     function selectDinoCard(element, dinoType) {
       document.querySelectorAll('.dino-card').forEach(card => card.classList.remove('selected'));
@@ -244,6 +259,12 @@
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       chosenGameMode = mode;
+    }
+
+    function selectMatchFormat(btn, boFmt) {
+      document.querySelectorAll('.bo-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      chosenMatchFormat = boFmt;
     }
 
     function hostOnlineRoom() {
@@ -275,7 +296,7 @@
       if (!window.gameEngine) {
         window.gameEngine = new GameEngine();
       }
-      window.gameEngine.startGame(chosenDinoType, chosenDifficulty, chosenGameMode);
+      window.gameEngine.startGame(chosenDinoType, chosenDifficulty, chosenGameMode, chosenMatchFormat);
     }
   </script>
 </body>

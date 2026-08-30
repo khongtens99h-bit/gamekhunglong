@@ -99,11 +99,11 @@ body, html {
 
 .title-container {
   text-align: center;
-  margin-bottom: 1.0rem;
+  margin-bottom: 0.8rem;
 }
 .title-container h1 {
   font-family: 'Cinzel', serif;
-  font-size: 3.2rem;
+  font-size: 3.0rem;
   font-weight: 900;
   letter-spacing: 8px;
   background: linear-gradient(180deg, #ffffff 0%, #2ecc71 100%);
@@ -113,7 +113,7 @@ body, html {
 }
 .title-container p {
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 3px;
   margin-top: 4px;
   text-transform: uppercase;
@@ -123,16 +123,16 @@ body, html {
 .mode-panel {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
 }
 .mode-btn {
-  padding: 0.7rem 1.6rem;
+  padding: 0.6rem 1.4rem;
   border-radius: 30px;
   border: 2px solid var(--panel-border);
   background: rgba(15, 23, 20, 0.8);
   color: var(--text-muted);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s;
@@ -153,13 +153,48 @@ body, html {
   background: rgba(231, 76, 60, 0.2);
 }
 
+/* BO FORMAT PANEL */
+.bo-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  background: rgba(25, 15, 20, 0.7);
+  padding: 0.4rem 1.0rem;
+  border-radius: 25px;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+.bo-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  text-transform: uppercase;
+}
+.bo-btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.4);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.bo-btn.selected {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: #e74c3c;
+  color: #ff6b6b;
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.5);
+}
+
 /* MULTIPLAYER PANEL */
 .multiplayer-box {
   background: rgba(20, 32, 25, 0.8);
   border: 1px solid rgba(46, 204, 113, 0.3);
   border-radius: 16px;
   padding: 0.8rem 1.6rem;
-  margin-bottom: 1.0rem;
+  margin-bottom: 0.8rem;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -200,7 +235,7 @@ body, html {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.0rem;
   background: rgba(15, 23, 20, 0.7);
   padding: 0.5rem 1.2rem;
   border-radius: 30px;
@@ -255,7 +290,7 @@ body, html {
 .dino-select-cards {
   display: flex;
   gap: 1.2rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
   max-width: 1050px;
   width: 95%;
 }
@@ -265,7 +300,7 @@ body, html {
   background: var(--panel-bg);
   border: 2px solid var(--panel-border);
   border-radius: 20px;
-  padding: 1.4rem;
+  padding: 1.2rem;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -286,23 +321,23 @@ body, html {
 }
 
 .dino-icon {
-  font-size: 2.8rem;
-  margin-bottom: 0.8rem;
+  font-size: 2.6rem;
+  margin-bottom: 0.6rem;
   color: var(--accent-green);
 }
 .dino-name {
   font-family: 'Cinzel', serif;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin-bottom: 0.3rem;
 }
 .dino-role {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 1px;
   padding: 3px 10px;
   border-radius: 20px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
   text-transform: uppercase;
 }
 .role-carnivore {
@@ -321,7 +356,7 @@ body, html {
   color: var(--text-muted);
   text-align: center;
   line-height: 1.4;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.0rem;
 }
 
 .stat-bars-mini {
@@ -371,19 +406,19 @@ body, html {
 /* ================= 1v1 ARENA PvP HUD ================= */
 #pvp-arena-hud {
   position: absolute;
-  top: 4%;
+  top: 3%;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 2rem;
-  background: rgba(10, 15, 12, 0.85);
+  gap: 1.5rem;
+  background: rgba(10, 15, 12, 0.9);
   border: 2px solid rgba(231, 76, 60, 0.5);
   backdrop-filter: blur(12px);
   padding: 0.8rem 2rem;
   border-radius: 40px;
   z-index: 10;
-  box-shadow: 0 0 30px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 0 35px rgba(231, 76, 60, 0.4);
 }
 .pvp-player-card {
   display: flex;
@@ -394,7 +429,7 @@ body, html {
 .pvp-player-name {
   font-family: 'Cinzel', serif;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 1px;
 }
 .pvp-hp-bar {
@@ -410,6 +445,25 @@ body, html {
   width: 100%;
   border-radius: 7px;
   transition: width 0.3s ease;
+}
+
+.pvp-score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.pvp-score-title {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: #f1c40f;
+  font-weight: 800;
+}
+.pvp-score-numbers {
+  font-family: 'Cinzel', serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
 }
 
 /* ================= IN-GAME HUD ================= */

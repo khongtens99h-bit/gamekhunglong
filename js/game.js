@@ -1,4 +1,4 @@
-/* js/game.js - Engine Supporting 1v1 Online PvP Arena & Reliable Opponent Rendering */
+/* js/game.js - Engine with Fixed Intutive A/D Left-Right Movement Keys */
 
 class GameEngine {
   constructor() {
@@ -6,6 +6,10 @@ class GameEngine {
     this.selectedDinoType = 'raptor';
     this.difficulty = 'normal';
     this.gameMode = 'survival';
+    this.matchFormat = 'bo3';
+
+    this.p1Score = 0;
+    this.p2Score = 0;
 
     this.stats = {
       hp: 100,
@@ -23,6 +27,7 @@ class GameEngine {
     this.depletionRate = { hunger: 0.6, thirst: 0.8 };
 
     this.skillCooldown = 0;
+    this.normalAttackCooldown = 0;
     this.attackAnimTime = 0;
 
     this.waterSources = [];
@@ -165,10 +170,11 @@ class GameEngine {
     this.aiManager = new AIManager(this.scene);
   }
 
-  startGame(dinoType, difficultyLevel = 'normal', mode = 'survival') {
+  startGame(dinoType, difficultyLevel = 'normal', mode = 'survival', matchFmt = 'bo3') {
     this.selectedDinoType = dinoType;
     this.difficulty = difficultyLevel;
     this.gameMode = mode;
+    this.matchFormat = matchFmt;
 
     let aiSpawnCount = 18;
     if (this.gameMode === 'pvp1v1') {
@@ -176,6 +182,8 @@ class GameEngine {
       this.depletionRate = { hunger: 0, thirst: 0 };
       document.getElementById('pvp-arena-hud').style.display = 'flex';
       document.getElementById('p1-dino-title').innerText = `BẠN (${dinoType.toUpperCase()})`;
+      document.getElementById('bo-format-title').innerText = matchFmt.toUpperCase();
+      this.update1v1ScoreUI();
     } else {
       document.getElementById('pvp-arena-hud').style.display = 'none';
       if (this.difficulty === 'easy') {
@@ -196,19 +204,19 @@ class GameEngine {
     if (this.playerMesh) this.scene.remove(this.playerMesh);
     this.playerMesh = ModelBuilder.createDinosaur(dinoType, false);
     
-    // Spawn position: Host at (0, y, -8), Joiner at (0, y, 8) facing each other
     const isHost = window.multiplayerManager && window.multiplayerManager.isHost;
     const spawnZ = isHost ? -8 : 8;
     const startY = this.getTerrainHeight(0, spawnZ);
     this.playerMesh.position.set(0, startY + 0.1, spawnZ);
 
-    // Initial facing: Host faces +Z, Joiner faces -Z
     this.dinoAngleY = isHost ? 0 : Math.PI;
     this.cameraAngleY = this.dinoAngleY;
     this.playerMesh.rotation.y = this.dinoAngleY;
     this.scene.add(this.playerMesh);
 
-    const maxHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'triceratops' ? 130 : 100));
+    const baseHp = dinoType === 'trex' ? 180 : (dinoType === 'stegosaurus' ? 150 : (dinoType === 'triceratops' ? 130 : 100));
+    const maxHp = this.gameMode === 'pvp1v1' ? baseHp * 3 : baseHp;
+
     this.stats.hp = maxHp;
     this.stats.maxHp = maxHp;
     this.stats.stamina = 100;
@@ -223,7 +231,6 @@ class GameEngine {
 
     this.aiManager.spawnInitialDinos(aiSpawnCount, this.difficulty);
 
-    // Ensure remote player 3D meshes are added to scene immediately
     if (window.multiplayerManager) {
       window.multiplayerManager.onGameStarted(this.scene);
     }
@@ -233,12 +240,17 @@ class GameEngine {
 
     document.body.requestPointerLock();
     if (this.gameMode === 'pvp1v1') {
-      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 ONLINE: Đối thủ có CỘT SÁNG XANH DƯƠNG trên đầu!`);
+      this.logNotification(`⚔️ ĐẤU TRƯỜNG 1v1 (${matchFmt.toUpperCase()}): Tăng 3x Máu (${maxHp} HP)!`);
     } else {
       const diffNames = { easy: 'Dễ (Easy)', normal: 'Vừa (Normal)', hard: 'Khó (Hard)', nightmare: '☠️ Bá Chủ Apex' };
       this.logNotification(`🎮 Độ Khó: ${diffNames[this.difficulty]} | Khủng Long: ${dinoType.toUpperCase()}`);
     }
     this.animate();
+  }
+
+  update1v1ScoreUI() {
+    const el = document.getElementById('pvp-score-numbers');
+    if (el) el.innerText = `${this.p1Score} - ${this.p2Score}`;
   }
 
   initInput() {
@@ -306,6 +318,12 @@ class GameEngine {
   }
 
   performLeftClickAttack() {
+    if (this.normalAttackCooldown > 0) {
+      this.logNotification(`Đòn cắn đang hồi chiêu (${this.normalAttackCooldown.toFixed(1)}s)...`);
+      return;
+    }
+
+    this.normalAttackCooldown = 0.9;
     this.attackAnimTime = 0.3;
     if (window.soundEngine) window.soundEngine.playAttack();
     if (window.multiplayerManager) window.multiplayerManager.sendEvent('attack');
@@ -347,7 +365,7 @@ class GameEngine {
     }
 
     if (hitCount === 0) {
-      this.logNotification(`Đòn đánh thường!`);
+      this.logNotification(`Đòn cắn thường!`);
     }
   }
 
@@ -491,6 +509,10 @@ class GameEngine {
   update(delta) {
     if (!this.isGaming) return;
 
+    if (this.normalAttackCooldown > 0) {
+      this.normalAttackCooldown = Math.max(0, this.normalAttackCooldown - delta);
+    }
+
     if (this.skillCooldown > 0) {
       this.skillCooldown = Math.max(0, this.skillCooldown - delta);
     }
@@ -499,7 +521,7 @@ class GameEngine {
       this.playerMesh.rotation.y = this.dinoAngleY;
     }
 
-    // 1. Movement Logic
+    // 1. Movement Logic (FIXED A/D LEFTRIGHT MOVEMENT)
     const baseSpeed = this.selectedDinoType === 'raptor' ? 0.13 : (this.selectedDinoType === 'trex' ? 0.11 : 0.09);
     const moveSpeed = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) && this.stats.stamina > 5 ? baseSpeed * 2 : baseSpeed;
     let isMoving = false;
@@ -507,15 +529,15 @@ class GameEngine {
     const inputVector = new THREE.Vector3();
     if (this.keys['KeyW'] || this.keys['ArrowUp']) inputVector.z += 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) inputVector.z -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x += 1;
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x -= 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) inputVector.x -= 1; // KeyA = Left (-1)
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) inputVector.x += 1; // KeyD = Right (+1)
 
     if (inputVector.lengthSq() > 0) {
       inputVector.normalize();
       isMoving = true;
 
       const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
-      const rightDir = new THREE.Vector3(-1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
+      const rightDir = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.dinoAngleY);
 
       const moveStep = forwardDir.clone().multiplyScalar(inputVector.z * moveSpeed)
         .add(rightDir.clone().multiplyScalar(inputVector.x * moveSpeed));
