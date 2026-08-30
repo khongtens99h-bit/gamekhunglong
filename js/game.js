@@ -1,4 +1,4 @@
-/* js/game.js - Engine Supporting Seamless BO1/BO3/BO5 Next Round Respawning */
+/* js/game.js - Engine Ensuring Both Players Get 100% Full Health On Next Round */
 
 class GameEngine {
   constructor() {
@@ -250,8 +250,8 @@ class GameEngine {
     this.animate();
   }
 
-  respawnNextRound() {
-    // Reset player HP and stats without page reload
+  respawnNextRound(sendNetwork = true) {
+    // Both players get 100% FULL HEALTH restored for the new round!
     this.stats.hp = this.stats.maxHp;
     this.stats.stamina = 100;
     this.stats.hunger = 100;
@@ -266,12 +266,18 @@ class GameEngine {
     this.cameraAngleY = this.dinoAngleY;
     this.playerMesh.rotation.y = this.dinoAngleY;
 
-    // Update HUD bars
+    // Reset HUD health bars to 100%
     const p1HpFill = document.getElementById('p1-pvp-hp-fill');
     if (p1HpFill) p1HpFill.style.width = '100%';
+    const p2HpFill = document.getElementById('p2-pvp-hp-fill');
+    if (p2HpFill) p2HpFill.style.width = '100%';
 
     document.getElementById('game-over-screen').classList.remove('active');
-    this.logNotification(`🔥 HIỆP ĐẤU MỚI BẮT ĐẦU! HÃY SẴN SÀNG!`);
+    this.logNotification(`🔥 CẢ 2 ĐÃ HỒI 100% MÁU! HIỆP ĐẤU MỚI BẮT ĐẦU!`);
+
+    if (sendNetwork && window.multiplayerManager) {
+      window.multiplayerManager.sendNextRoundReset();
+    }
 
     this.isGaming = true;
     document.body.requestPointerLock();
@@ -773,7 +779,7 @@ class GameEngine {
     const btnContainer = document.getElementById('game-over-buttons');
 
     if (this.gameMode === 'pvp1v1') {
-      this.p2Score += 1; // Opponent scored
+      this.p2Score += 1;
       this.update1v1ScoreUI();
 
       const winsNeeded = this.matchFormat === 'bo1' ? 1 : (this.matchFormat === 'bo3' ? 2 : 3);
@@ -789,8 +795,8 @@ class GameEngine {
         title.innerText = `KẾT THÚC HIỆP ĐẤU!`;
         desc.innerText = `Đối thủ thắng hiệp này. Tỉ số hiện tại: ${this.p1Score} - ${this.p2Score}`;
         btnContainer.innerHTML = `
-          <button class="btn-start" onclick="window.gameEngine.respawnNextRound()" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: #fff;">
-            <i class="fa-solid fa-play"></i> Sang Hiệp Tiếp Theo ➔
+          <button class="btn-start" onclick="window.gameEngine.respawnNextRound(true)" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: #fff;">
+            <i class="fa-solid fa-play"></i> Sang Hiệp Tiếp Theo (Cả 2 Hồi Full Máu) ➔
           </button>
         `;
       }
