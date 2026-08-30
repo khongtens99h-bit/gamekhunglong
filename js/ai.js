@@ -1,4 +1,4 @@
-/* js/ai.js - AI Dinosaur Behavior System with Ground Clamping */
+/* js/ai.js - High Difficulty Aggressive AI Dinosaur System */
 
 class AIDinosaur {
   constructor(scene, type, spawnPos) {
@@ -7,15 +7,22 @@ class AIDinosaur {
     this.mesh = ModelBuilder.createDinosaur(type, true);
     this.mesh.position.copy(spawnPos);
     
-    // Clamp initial spawn Y to ground level
     const groundY = this.getTerrainHeight(spawnPos.x, spawnPos.z);
     this.mesh.position.y = groundY + 0.1;
-
     this.scene.add(this.mesh);
 
-    this.hp = type === 'triceratops' ? 120 : 70;
+    // High Difficulty Species Stats
+    if (type === 'trex') {
+      this.hp = 250; this.speed = 0.095; this.damage = 38;
+    } else if (type === 'stegosaurus') {
+      this.hp = 180; this.speed = 0.065; this.damage = 28;
+    } else if (type === 'triceratops') {
+      this.hp = 150; this.speed = 0.075; this.damage = 25;
+    } else { // raptor
+      this.hp = 95;  this.speed = 0.12;  this.damage = 22;
+    }
+
     this.maxHp = this.hp;
-    this.speed = type === 'raptor' ? 0.09 : 0.06;
     this.state = 'idle';
     this.targetPos = new THREE.Vector3();
     this.stateTimer = 0;
@@ -35,7 +42,7 @@ class AIDinosaur {
 
   pickNewWanderTarget() {
     const angle = Math.random() * Math.PI * 2;
-    const dist = 15 + Math.random() * 30;
+    const dist = 15 + Math.random() * 35;
     this.targetPos.set(
       this.mesh.position.x + Math.sin(angle) * dist,
       0,
@@ -54,13 +61,14 @@ class AIDinosaur {
 
     const isDifferentSpecies = this.type !== playerDinoType;
 
-    if (isDifferentSpecies && distToPlayer < 35) {
+    // Aggressive Pack Detection Range: 50 meters!
+    if (isDifferentSpecies && distToPlayer < 50) {
       this.state = 'attack';
-    } else if (!isDifferentSpecies && distToPlayer < 15 && this.state === 'attack_retaliate') {
+    } else if (!isDifferentSpecies && distToPlayer < 18 && this.state === 'attack_retaliate') {
       this.state = 'attack';
     } else if (this.stateTimer <= 0 && this.state !== 'attack') {
       this.stateTimer = 3 + Math.random() * 5;
-      this.state = Math.random() > 0.4 ? 'wander' : 'idle';
+      this.state = Math.random() > 0.3 ? 'wander' : 'idle';
       if (this.state === 'wander') this.pickNewWanderTarget();
     }
 
@@ -68,12 +76,11 @@ class AIDinosaur {
 
     if (this.state === 'attack') {
       moveVector.subVectors(playerMesh.position, this.mesh.position).normalize();
-      this.moveTowards(moveVector, this.speed * 1.3, delta);
+      this.moveTowards(moveVector, this.speed * 1.35, delta);
 
-      if (distToPlayer < 4.0 && this.attackCooldown <= 0) {
-        this.attackCooldown = 1.4;
-        const damage = this.type === 'raptor' ? 18 : 14;
-        gameEngine.takePlayerDamage(damage, this.type);
+      if (distToPlayer < 4.8 && this.attackCooldown <= 0) {
+        this.attackCooldown = 1.1; // Faster attacks
+        gameEngine.takePlayerDamage(this.damage, this.type);
         if (window.soundEngine) window.soundEngine.playAttack();
       }
     } else if (this.state === 'flee') {
@@ -88,7 +95,6 @@ class AIDinosaur {
         this.moveTowards(moveVector, this.speed, delta);
       }
     } else {
-      // Idle animation
       const groundY = this.getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
       this.mesh.position.y = groundY + 0.1 + Math.sin(this.animTime * 0.5) * 0.05;
     }
@@ -96,12 +102,11 @@ class AIDinosaur {
 
   moveTowards(dir, currentSpeed, delta) {
     const targetAngle = Math.atan2(dir.x, dir.z);
-    this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, targetAngle, 0.12);
+    this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, targetAngle, 0.14);
 
     this.mesh.position.x += Math.sin(this.mesh.rotation.y) * currentSpeed;
     this.mesh.position.z += Math.cos(this.mesh.rotation.y) * currentSpeed;
 
-    // Clamp Y altitude to ground height so AI never sinks into terrain
     const groundY = this.getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
     this.mesh.position.y = groundY + 0.1;
 
@@ -140,11 +145,12 @@ class AIManager {
     this.dinos = [];
   }
 
-  spawnInitialDinos(count = 10) {
+  spawnInitialDinos(count = 25) {
+    const species = ['raptor', 'triceratops', 'trex', 'stegosaurus'];
     for (let i = 0; i < count; i++) {
-      const type = Math.random() > 0.5 ? 'raptor' : 'triceratops';
+      const type = species[Math.floor(Math.random() * species.length)];
       const angle = Math.random() * Math.PI * 2;
-      const radius = 25 + Math.random() * 120;
+      const radius = 18 + Math.random() * 140;
       const pos = new THREE.Vector3(
         Math.sin(angle) * radius,
         0,

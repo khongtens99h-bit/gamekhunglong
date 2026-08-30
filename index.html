@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- PeerJS WebRTC Online Multiplayer Library -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
@@ -22,7 +24,16 @@
   <div id="menu-screen">
     <div class="title-container">
       <h1>THE DINO ISLE</h1>
-      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D</p>
+      <p>THẾ GIỚI KHỦNG LONG SINH TỒN 3D MULTIPLAYER</p>
+    </div>
+
+    <!-- Multiplayer Online Panel -->
+    <div class="multiplayer-box">
+      <button class="mp-btn" onclick="hostOnlineRoom()"><i class="fa-solid fa-tower-broadcast"></i> Tạo Phòng Online</button>
+      <div id="room-code-display" style="display: none;">MÃ PHÒNG: <span id="my-room-code" style="color: #f1c40f;"></span></div>
+      <div style="color: #8fa397;">HOẶC</div>
+      <input type="text" id="join-code-input" class="mp-input" placeholder="MÃ PHÒNG" maxlength="6">
+      <button class="mp-btn" style="background: linear-gradient(90deg, #3498db, #2980b9);" onclick="joinOnlineRoom()"><i class="fa-solid fa-right-to-bracket"></i> Tham Gia</button>
     </div>
 
     <div class="dino-select-cards">
@@ -30,16 +41,34 @@
       <div class="dino-card selected" onclick="selectDinoCard(this, 'raptor')">
         <div class="dino-icon"><i class="fa-solid fa-dragon"></i></div>
         <div class="dino-name">Raptor</div>
-        <div class="dino-role role-carnivore">Ăn Thịt (Carnivore)</div>
-        <div class="dino-desc">Khủng long săn mồi di chuyển linh hoạt. Kỹ năng [Chuột Phải]: Nhảy vồ Pounce gây sát thương cực lớn.</div>
+        <div class="dino-role role-carnivore">Ăn Thịt</div>
+        <div class="dino-desc">Khủng long săn mồi di chuyển linh hoạt. Skill [Chuột Phải]: Nhảy vồ Pounce.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Sức Mạnh</span>
-            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 85%; background: #e74c3c;"></div></div>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 75%; background: #e74c3c;"></div></div>
           </div>
           <div class="stat-row">
             <span>Tốc Độ</span>
-            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 90%; background: #f1c40f;"></div></div>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 95%; background: #f1c40f;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- T-Rex Card -->
+      <div class="dino-card" onclick="selectDinoCard(this, 'trex')">
+        <div class="dino-icon"><i class="fa-solid fa-skull-crossbones"></i></div>
+        <div class="dino-name">T-Rex</div>
+        <div class="dino-role role-carnivore">Bá Chủ Ăn Thịt</div>
+        <div class="dino-desc">Khủng long bạo chúa sức mạnh hủy diệt. Skill [Chuột Phải]: Cắn Xé Apex Crunch.</div>
+        <div class="stat-bars-mini">
+          <div class="stat-row">
+            <span>Sức Mạnh</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 100%; background: #e74c3c;"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Tốc Độ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 70%; background: #f1c40f;"></div></div>
           </div>
         </div>
       </div>
@@ -48,8 +77,26 @@
       <div class="dino-card" onclick="selectDinoCard(this, 'triceratops')">
         <div class="dino-icon"><i class="fa-solid fa-shield-cat"></i></div>
         <div class="dino-name">Triceratops</div>
-        <div class="dino-role role-herbivore">Ăn Cỏ (Herbivore)</div>
-        <div class="dino-desc">Khủng long 3 sừng phòng thủ mạnh mẽ. Kỹ năng [Chuột Phải]: Tông sừng Horn Charge đẩy lùi kẻ địch.</div>
+        <div class="dino-role role-herbivore">Ăn Cỏ (Tank)</div>
+        <div class="dino-desc">Khủng long 3 sừng phòng thủ mạnh mẽ. Skill [Chuột Phải]: Tông sừng Horn Charge.</div>
+        <div class="stat-bars-mini">
+          <div class="stat-row">
+            <span>Máu & Thủ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 90%; background: #2ecc71;"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Tốc Độ</span>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 60%; background: #f1c40f;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stegosaurus Card -->
+      <div class="dino-card" onclick="selectDinoCard(this, 'stegosaurus')">
+        <div class="dino-icon"><i class="fa-solid fa-gem"></i></div>
+        <div class="dino-name">Stegosaurus</div>
+        <div class="dino-role role-herbivore">Ăn Cỏ (Giáp Mài)</div>
+        <div class="dino-desc">Khủng long vây kiếm đuôi gai. Skill [Chuột Phải]: Quật Đuôi Gai Thagomizer Strike.</div>
         <div class="stat-bars-mini">
           <div class="stat-row">
             <span>Máu & Thủ</span>
@@ -57,7 +104,7 @@
           </div>
           <div class="stat-row">
             <span>Tốc Độ</span>
-            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 60%; background: #f1c40f;"></div></div>
+            <div class="stat-mini-bar"><div class="stat-mini-fill" style="width: 55%; background: #f1c40f;"></div></div>
           </div>
         </div>
       </div>
@@ -119,7 +166,7 @@
     <div class="hud-bottom">
       <div class="controls-guide">
         <div><span class="key-badge">RÊ CHUỘT</span> Quay Hướng</div>
-        <div><span class="key-badge">ALT</span> Xoay Free Camera</div>
+        <div><span class="key-badge">ALT</span> Free Camera</div>
         <div><span class="key-badge">CHUỘT TRÁI</span> Đánh Thường</div>
         <div><span class="key-badge">CHUỘT PHẢI</span> Kỹ Năng</div>
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
@@ -145,6 +192,7 @@
   <script src="js/models.js"></script>
   <script src="js/scent.js"></script>
   <script src="js/ai.js"></script>
+  <script src="js/multiplayer.js"></script>
   <script src="js/game.js"></script>
 
   <script>
@@ -154,6 +202,31 @@
       document.querySelectorAll('.dino-card').forEach(card => card.classList.remove('selected'));
       element.classList.add('selected');
       chosenDinoType = dinoType;
+    }
+
+    function hostOnlineRoom() {
+      if (window.multiplayerManager) {
+        window.multiplayerManager.createRoom((code) => {
+          document.getElementById('room-code-display').style.display = 'block';
+          document.getElementById('my-room-code').innerText = code;
+          alert(`Đã tạo phòng Online thành công! Mã phòng của bạn là: ${code}\nHãy gửi mã này cho bạn bè nhập để cùng chơi.`);
+        });
+      }
+    }
+
+    function joinOnlineRoom() {
+      const code = document.getElementById('join-code-input').value;
+      if (!code) {
+        alert('Vui lòng nhập Mã Phòng!');
+        return;
+      }
+      if (window.multiplayerManager) {
+        window.multiplayerManager.joinRoom(code, (successCode) => {
+          alert(`Đã tham gia phòng Online ${successCode} thành công! Chọn khủng long và bấm Bắt Đầu Sinh Tồn.`);
+        }, (err) => {
+          alert(`Không thể tham gia phòng: Khắc phục mã phòng hoặc kiểm tra mạng.`);
+        });
+      }
     }
 
     function onStartGameClicked() {

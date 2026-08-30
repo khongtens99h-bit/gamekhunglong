@@ -5,13 +5,22 @@ class ModelBuilder {
     const dinoGroup = new THREE.Group();
 
     // Color choices
-    let mainColor = type === 'raptor' ? 0x27ae60 : 0x8e44ad;
-    let bellyColor = type === 'raptor' ? 0xf1c40f : 0xd2b4de;
-    let stripeColor = type === 'raptor' ? 0x1e8449 : 0x5b2c6f;
+    let mainColor = 0x27ae60;
+    let bellyColor = 0xf1c40f;
+    let hornColor = 0xeaeaea;
 
-    if (isAI) {
-      mainColor = type === 'raptor' ? 0xc0392b : 0xd35400; // Red/Orange for AI
-      bellyColor = 0xf39c12;
+    if (type === 'raptor') {
+      mainColor = isAI ? 0xc0392b : 0x27ae60;
+      bellyColor = 0xf1c40f;
+    } else if (type === 'triceratops') {
+      mainColor = isAI ? 0xd35400 : 0x8e44ad;
+      bellyColor = 0xd2b4de;
+    } else if (type === 'trex') {
+      mainColor = isAI ? 0x7f8c8d : 0xa04000;
+      bellyColor = 0xedbb99;
+    } else if (type === 'stegosaurus') {
+      mainColor = isAI ? 0x16a085 : 0x2e4053;
+      bellyColor = 0xa3e4d7;
     }
 
     const mainMat = new THREE.MeshStandardMaterial({
@@ -27,10 +36,11 @@ class ModelBuilder {
     });
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const hornMat = new THREE.MeshStandardMaterial({ color: 0xeaeaea, roughness: 0.3 });
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.4, flatShading: true });
     const toothMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
     if (type === 'raptor') {
-      // Body (Carnivore Raptor / Rex style)
+      // Body
       const bodyGeo = new THREE.ConeGeometry(0.8, 2.2, 7);
       bodyGeo.rotateX(Math.PI / 2);
       const body = new THREE.Mesh(bodyGeo, mainMat);
@@ -60,28 +70,15 @@ class ModelBuilder {
       skull.position.set(0, 0.7, 0.6);
       headGroup.add(skull);
 
-      // Snout/Jaw
       const snoutGeo = new THREE.BoxGeometry(0.55, 0.45, 0.9);
       const snout = new THREE.Mesh(snoutGeo, mainMat);
       snout.position.set(0, 0.6, 1.3);
       headGroup.add(snout);
 
-      // Eyes
       const eyeGeo = new THREE.SphereGeometry(0.12, 6, 6);
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(0.3, 0.8, 0.7);
-      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeR.position.set(-0.3, 0.8, 0.7);
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(0.3, 0.8, 0.7);
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(-0.3, 0.8, 0.7);
       headGroup.add(eyeL, eyeR);
-
-      // Teeth
-      for (let i = -0.18; i <= 0.18; i += 0.18) {
-        const toothGeo = new THREE.ConeGeometry(0.04, 0.15, 4);
-        toothGeo.rotateX(Math.PI);
-        const t1 = new THREE.Mesh(toothGeo, toothMat);
-        t1.position.set(i, 0.35, 1.5);
-        headGroup.add(t1);
-      }
 
       dinoGroup.add(headGroup);
       dinoGroup.headGroup = headGroup;
@@ -95,20 +92,119 @@ class ModelBuilder {
       tail.position.set(0, 0, -1.2);
       tailGroup.add(tail);
       dinoGroup.add(tailGroup);
-      dinoGroup.tailGroup = tailGroup;
 
-      // Legs (Bipedal)
-      const legLeft = this.createLeg(mainMat, bellyMat, false);
-      legLeft.position.set(0.6, 1.2, -0.2);
-      const legRight = this.createLeg(mainMat, bellyMat, false);
-      legRight.position.set(-0.6, 1.2, -0.2);
-
+      // Legs
+      const legLeft = this.createLeg(mainMat, bellyMat); legLeft.position.set(0.6, 1.2, -0.2);
+      const legRight = this.createLeg(mainMat, bellyMat); legRight.position.set(-0.6, 1.2, -0.2);
       dinoGroup.add(legLeft, legRight);
-      dinoGroup.legLeft = legLeft;
-      dinoGroup.legRight = legRight;
+      dinoGroup.legLeft = legLeft; dinoGroup.legRight = legRight;
+
+    } else if (type === 'trex') {
+      // Massive T-Rex
+      const bodyGeo = new THREE.SphereGeometry(1.3, 10, 10);
+      bodyGeo.scale(1.2, 1.3, 2.0);
+      const body = new THREE.Mesh(bodyGeo, mainMat);
+      body.position.y = 2.0;
+      body.castShadow = true;
+      dinoGroup.add(body);
+
+      // Huge Head
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 2.6, 1.4);
+
+      const skullGeo = new THREE.BoxGeometry(1.1, 1.0, 1.8);
+      const skull = new THREE.Mesh(skullGeo, mainMat);
+      skull.position.set(0, 0.5, 0.8);
+      headGroup.add(skull);
+
+      // Sharp Teeth
+      for (let i = -0.35; i <= 0.35; i += 0.2) {
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 4), toothMat);
+        tooth.rotation.x = Math.PI;
+        tooth.position.set(i, 0.0, 1.5);
+        headGroup.add(tooth);
+      }
+
+      const eyeGeo = new THREE.SphereGeometry(0.16, 6, 6);
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(0.55, 0.8, 0.9);
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(-0.55, 0.8, 0.9);
+      headGroup.add(eyeL, eyeR);
+
+      dinoGroup.add(headGroup);
+      dinoGroup.headGroup = headGroup;
+
+      // Tail
+      const tailGroup = new THREE.Group();
+      tailGroup.position.set(0, 2.0, -1.8);
+      const tailGeo = new THREE.ConeGeometry(0.7, 3.2, 8);
+      tailGeo.rotateX(-Math.PI / 2);
+      const tail = new THREE.Mesh(tailGeo, mainMat);
+      tail.position.set(0, -0.2, -1.5);
+      tailGroup.add(tail);
+      dinoGroup.add(tailGroup);
+
+      // Muscular Legs
+      const legL = this.createLeg(mainMat, bellyMat); legL.position.set(0.9, 1.8, -0.4); legL.scale.set(1.4, 1.4, 1.4);
+      const legR = this.createLeg(mainMat, bellyMat); legR.position.set(-0.9, 1.8, -0.4); legR.scale.set(1.4, 1.4, 1.4);
+      dinoGroup.add(legL, legR);
+      dinoGroup.legLeft = legL; dinoGroup.legRight = legR;
+
+    } else if (type === 'stegosaurus') {
+      // Stegosaurus Quadruped with Back Plates
+      const bodyGeo = new THREE.SphereGeometry(1.3, 10, 10);
+      bodyGeo.scale(1.0, 1.1, 1.9);
+      const body = new THREE.Mesh(bodyGeo, mainMat);
+      body.position.y = 1.4;
+      body.castShadow = true;
+      dinoGroup.add(body);
+
+      // Back Plates (Double row of diamond plates)
+      for (let z = -1.2; z <= 1.2; z += 0.45) {
+        const plateGeo = new THREE.ConeGeometry(0.4, 0.9, 4);
+        plateGeo.scale(0.2, 1.0, 0.8);
+        const p1 = new THREE.Mesh(plateGeo, plateMat); p1.position.set(0.25, 2.3, z);
+        const p2 = new THREE.Mesh(plateGeo, plateMat); p2.position.set(-0.25, 2.3, z);
+        dinoGroup.add(p1, p2);
+      }
+
+      // Small Head
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.0, 1.8);
+      const skull = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.9), mainMat);
+      headGroup.add(skull);
+      dinoGroup.add(headGroup);
+      dinoGroup.headGroup = headGroup;
+
+      // Spiked Tail (Thagomizer)
+      const tailGroup = new THREE.Group();
+      tailGroup.position.set(0, 1.3, -1.6);
+      const tailGeo = new THREE.ConeGeometry(0.4, 2.2, 6);
+      tailGeo.rotateX(-Math.PI / 2);
+      const tail = new THREE.Mesh(tailGeo, mainMat);
+      tail.position.set(0, 0, -1.0);
+      tailGroup.add(tail);
+
+      // 4 Tail Spikes
+      for (let i = -0.3; i <= 0.3; i += 0.6) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.9, 4), hornMat);
+        spike.rotation.z = i > 0 ? -Math.PI / 3 : Math.PI / 3;
+        spike.position.set(i, 0.2, -1.8);
+        tailGroup.add(spike);
+      }
+      dinoGroup.add(tailGroup);
+
+      // 4 Legs
+      const legFL = this.createQuadLeg(mainMat); legFL.position.set(0.8, 1.0, 1.1);
+      const legFR = this.createQuadLeg(mainMat); legFR.position.set(-0.8, 1.0, 1.1);
+      const legBL = this.createQuadLeg(mainMat); legBL.position.set(0.8, 1.0, -1.1);
+      const legBR = this.createQuadLeg(mainMat); legBR.position.set(-0.8, 1.0, -1.1);
+
+      dinoGroup.add(legFL, legFR, legBL, legBR);
+      dinoGroup.legLeft = legFL; dinoGroup.legRight = legFR;
+      dinoGroup.legBackLeft = legBL; dinoGroup.legBackRight = legBR;
 
     } else {
-      // Herbivore (Triceratops style Quadruped)
+      // Triceratops Quadruped
       const bodyGeo = new THREE.SphereGeometry(1.2, 10, 10);
       bodyGeo.scale(1.1, 0.95, 1.6);
       const body = new THREE.Mesh(bodyGeo, mainMat);
@@ -125,31 +221,25 @@ class ModelBuilder {
       const skull = new THREE.Mesh(skullGeo, mainMat);
       headGroup.add(skull);
 
-      // Large Frill Shield behind head
       const frillGeo = new THREE.CylinderGeometry(1.3, 0.8, 0.2, 8);
       frillGeo.rotateX(Math.PI / 3);
       const frill = new THREE.Mesh(frillGeo, mainMat);
       frill.position.set(0, 0.5, -0.4);
       headGroup.add(frill);
 
-      // Horns (3 horns)
       const mainHornGeo = new THREE.ConeGeometry(0.15, 1.2, 6);
       mainHornGeo.rotateX(Math.PI / 3);
-      const hornL = new THREE.Mesh(mainHornGeo, hornMat);
-      hornL.position.set(0.4, 0.7, 0.4);
-      const hornR = new THREE.Mesh(mainHornGeo, hornMat);
-      hornR.position.set(-0.4, 0.7, 0.4);
+      const hornL = new THREE.Mesh(mainHornGeo, hornMat); hornL.position.set(0.4, 0.7, 0.4);
+      const hornR = new THREE.Mesh(mainHornGeo, hornMat); hornR.position.set(-0.4, 0.7, 0.4);
       
       const noseHornGeo = new THREE.ConeGeometry(0.12, 0.6, 6);
       noseHornGeo.rotateX(Math.PI / 4);
-      const noseHorn = new THREE.Mesh(noseHornGeo, hornMat);
-      noseHorn.position.set(0, 0.2, 0.9);
+      const noseHorn = new THREE.Mesh(noseHornGeo, hornMat); noseHorn.position.set(0, 0.2, 0.9);
 
       headGroup.add(hornL, hornR, noseHorn);
       dinoGroup.add(headGroup);
       dinoGroup.headGroup = headGroup;
 
-      // Tail
       const tailGroup = new THREE.Group();
       tailGroup.position.set(0, 1.2, -1.3);
       const tailGeo = new THREE.ConeGeometry(0.4, 1.8, 6);
@@ -158,19 +248,15 @@ class ModelBuilder {
       tail.position.set(0, -0.1, -0.8);
       tailGroup.add(tail);
       dinoGroup.add(tailGroup);
-      dinoGroup.tailGroup = tailGroup;
 
-      // 4 Legs
       const legFL = this.createQuadLeg(mainMat); legFL.position.set(0.8, 1.0, 0.9);
       const legFR = this.createQuadLeg(mainMat); legFR.position.set(-0.8, 1.0, 0.9);
       const legBL = this.createQuadLeg(mainMat); legBL.position.set(0.8, 1.0, -0.9);
       const legBR = this.createQuadLeg(mainMat); legBR.position.set(-0.8, 1.0, -0.9);
 
       dinoGroup.add(legFL, legFR, legBL, legBR);
-      dinoGroup.legLeft = legFL;
-      dinoGroup.legRight = legFR;
-      dinoGroup.legBackLeft = legBL;
-      dinoGroup.legBackRight = legBR;
+      dinoGroup.legLeft = legFL; dinoGroup.legRight = legFR;
+      dinoGroup.legBackLeft = legBL; dinoGroup.legBackRight = legBR;
     }
 
     dinoGroup.type = type;
@@ -238,7 +324,6 @@ class ModelBuilder {
       leaf.castShadow = true;
       bushGroup.add(leaf);
     }
-    // Red berries
     for (let i = 0; i < 4; i++) {
       const berry = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), berryMat);
       berry.position.set((Math.random() - 0.5) * 1.0, 0.6 + Math.random() * 0.4, (Math.random() - 0.5) * 1.0);
